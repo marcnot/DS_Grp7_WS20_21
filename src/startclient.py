@@ -4,7 +4,7 @@ from threading import Thread
 from datetime import datetime
 from colorama import Fore, init, Back
 
-# init colors
+# init colorsasd
 init()
 
 # set the available colors
