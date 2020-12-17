@@ -1,76 +1,61 @@
 import socket
-import threading
-import os
-import sys
-import time
+from threading import Thread
 
-# Create a UDP socket
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
-server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+# server's IP address
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 5002 # port we want to use
+separator_token = "<SEP>" # we will use this to separate the client name & message
 
-# Server application IP address and port
-server_address = '127.0.0.1'
-server_port = 10001
+# initialize list/set of all connected client's sockets
+client_sockets = set()
+# create a TCP socket
+s = socket.socket()
+# make the port as reusable port
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# bind the socket to the address we specified
+s.bind((SERVER_HOST, SERVER_PORT))
+# listen for upcoming connections
+s.listen(5)
+print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
 
-# Buffer size
-buffer_size = 1024
-
-# Bind socket to port
-server_socket.bind((server_address, server_port))
-print('Server up and running at {}:{}'.format(server_address, server_port))
-
-clients = []
-
-def clientthread(conn, addr):
-    conn.send("Welcome to this chatroom!")  
-    while True:  
-            try:  
-                message = conn.recv(buffer_size)  
-                if message:  
-                    print ("<" + addr[0] + "> " + message)  
-  
-                    # Calls broadcast function to send message to all  
-                    message_to_send = "<" + addr[0] + "> " + message  
-                    broadcast(message_to_send, conn)  
-  
-                else:
-                    remove(conn)  
-  
-            except:  
-                continue
-
-def broadcast(message, connection):  
-    for clients in clients:  
-        if clients!=connection:  
-            try:  
-                clients.send(message)  
-            except:  
-                clients.close()  
-  
-                # if the link is broken, we remove the client  
-                remove(clients)  
-
-def remove(connection):  
-    if connection in clients:  
-        clients.remove(connection)  
+def listen_for_client(cs):
+    """
+    This function keep listening for a message from `cs` socket
+    Whenever a message is received, broadcast it to all other connected clients
+    """
+    while True:
+        try:
+            # keep listening for a message from `cs` socket
+            msg = cs.recv(1024).decode()
+        except Exception as e:
+            # client no longer connected
+            # remove it from the set
+            print(f"[!] Error: {e}")
+            client_sockets.remove(cs)
+        else:
+            # if we received a message, replace the <SEP> 
+            # token with ": " for nice printing
+            msg = msg.replace(separator_token, ": ")
+        # iterate over all connected sockets
+        for client_socket in client_sockets:
+            # and send the message
+            client_socket.send(msg.encode())
 
 while True:
+    # we keep listening for new connections all the time
+    client_socket, client_address = s.accept()
+    print(f"[+] {client_address} connected.")
+    # add the new connected client to connected sockets
+    client_sockets.add(client_socket)
+    # start a new thread that listens for each client's messages
+    t = Thread(target=listen_for_client, args=(client_socket,))
+    # make the thread daemon so it ends whenever the main thread ends
+    t.daemon = True
+    # start the thread
+    t.start()
 
-    # get the data sent to us
-    #data, ip = server_socket.recvfrom(1024)
-    conn, addr = server_socket.accept()
-
-    clients.append(conn)
-
-    print(addr[0] + "connected!")
-    threading.Thread(clientthread(conn,addr))
-
-    # display
-    #print("{}: {}".format(ip, data.decode(encoding="utf-8").strip()))
-
-    # echo back
-    #server_socket.sendto(data, ip)
-
-conn.close()
-server_socket.close()
+    # close client sockets
+for cs in client_sockets:
+    cs.close()
+# close server socket
+s.close()
