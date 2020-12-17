@@ -10,23 +10,13 @@ server_port = 10001
 # Buffer size
 buffer_size = 1024
 
-# Message sent to server
-message = 'Hi server!'
+while True:
 
-print("Nachrich eingeben")
-x = input()
+    message = input(">> ")
+    message = message.encode()
 
-try:
-    # Send data to server
-    client_socket.sendto(x.encode(), (server_address, server_port))
-    #client_socket.sendto(message.encode(), (server_address, server_port))
-    print('Sent to server: ', x)
+    client_socket.sendto(message, (server_address, server_port))
 
-    # Receive response from server
-    print('Waiting for response...')
-    data, server = client_socket.recvfrom(buffer_size)
-    print('Received message from server: ', data.decode())
+    data, ip = client_socket.recvfrom(buffer_size)
 
-finally:
-    client_socket.close()
-    print('Socket closed')
+    print("{}: {}".format(ip, data.decode()))
