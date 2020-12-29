@@ -5,7 +5,7 @@ hostname = socket.gethostname()
 host = socket.gethostbyname(hostname)
 udp_port = 5566
 
-nickname = input("Wähle einen Benutzernamen")
+nickname = input("Wähle einen Benutzernamen: ")
 
 def ask_host():
     broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -47,7 +47,7 @@ def recieve():
 
 def write():
     while True:
-        message = f'{nickname}: {input("")}'
+        message = f'{nickname}: {input("--> ")}'
         client.send(message.encode('ascii'))
 
 
