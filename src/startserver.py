@@ -51,7 +51,7 @@ while True:
     t = Thread(target=listen_for_client, args=(client_socket,))
     # make the thread daemon so it ends whenever the main thread ends
     t.daemon = True
-    # start the thread
+    # start the thread please
     t.start()
 
     # close client sockets
