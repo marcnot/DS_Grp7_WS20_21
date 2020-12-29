@@ -20,13 +20,15 @@ def rec_host():
     m = s.recv(1024).decode('ascii')
     s.close()
     new_values = m.split(",")
-    global adresse
+    # global adresse
     adresse = str(new_values[0])
-    global port
+    # global port
     port = int(new_values[1])
+    return port, adresse
+
 
 ask_host()
-rec_host()
+port, adresse = rec_host()
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((adresse, port))
