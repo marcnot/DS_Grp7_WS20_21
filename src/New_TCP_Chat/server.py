@@ -5,7 +5,7 @@ hostname = socket.gethostname()
 tcp_host = socket.gethostbyname(hostname)
 tcp_port = 5555
 
-def send_adress():
+def send_address():
     while True:
         broadcast_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_listener.bind(('', 5544))
@@ -21,7 +21,7 @@ def send_adress():
             print("Wrong identifier")
 
 
-thread = threading.Thread(target=send_adress)
+thread = threading.Thread(target=send_address)
 thread.start()
 
 

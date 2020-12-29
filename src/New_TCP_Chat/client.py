@@ -14,7 +14,7 @@ def ask_host():
     broadcast_sender.close()
 
 
-def rec_host():
+def recv_host():
     broadcast_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     broadcast_listener.bind(('', 5566))
     message = broadcast_listener.recv(1024).decode('ascii')
@@ -26,7 +26,7 @@ def rec_host():
 
 
 ask_host()
-tcp_port, tcp_address = rec_host()
+tcp_port, tcp_address = recv_host()
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((tcp_address, tcp_port))
