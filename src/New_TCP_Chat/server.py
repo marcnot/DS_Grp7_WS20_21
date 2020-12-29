@@ -2,23 +2,21 @@ import threading
 import socket
 
 hostname = socket.gethostname()
-host = socket.gethostbyname(hostname)
-#host = '127.0.0.1'
-port = 5555
+tcp_host = socket.gethostbyname(hostname)
+tcp_port = 5555
 
 def send_adress():
     while True:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.bind(('', 5544))
-        m = s.recv(1024).decode('ascii')
-        new_values = m.split(",")
+        broadcast_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        broadcast_listener.bind(('', 5544))
+        broadcast_message = broadcast_listener.recv(1024).decode('ascii')
+        new_values = broadcast_message.split(",")
         if new_values[0] == '991199':
-            print(new_values)
-            adress = str(new_values[1])
-            porta = int(new_values[2])
-            r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            r.sendto(f'{host},{port}'.encode('ascii'), (adress, porta))
-            r.close()
+            udp_address = str(new_values[1])
+            udp_port = int(new_values[2])
+            broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            broadcast_sender.sendto(f'{tcp_host},{tcp_port}'.encode('ascii'), (udp_address, udp_port))
+            broadcast_sender.close()
         else:
             print("Wrong identifier")
 
@@ -28,7 +26,7 @@ thread.start()
 
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((host, port))
+server.bind((tcp_host, tcp_port))
 
 server.listen()
 
@@ -36,7 +34,7 @@ clients = []
 nicknames = []
 
 
-def broadcast(message):
+def multicast(message):
     for client in clients:
         client.send(message)
 
@@ -45,20 +43,20 @@ def handle(client):
     while True:
         try:
             message = client.recv(1024)
-            broadcast(message)
+            multicast(message)
         except:
             index = clients.index(client)
             clients.remove(client)
             client.close
             nickname = nicknames[index]
-            broadcast(f'{nickname} hat den chat verlassen'.encode('ascii'))
+            multicast(f'{nickname} has left the chat'.encode('ascii'))
             nicknames.remove(nickname)
             break
 
 def recieve():
     while True:
         client, address = server.accept()
-        print(f"Verbunden mit {str(address)}")
+        print(f"Connected with {str(address)}")
 
         client.send('NICK'.encode('ascii'))
         nickname = client.recv(1024).decode('ascii')
@@ -67,8 +65,8 @@ def recieve():
         clients.append(client)
 
         print(f'Nickname of the CLient is {nickname}!')
-        broadcast(f'Benutzer {nickname} hat den Chat betreten'.encode('ascii'))
-        client.send('Verbunden mit dem Server'.encode('ascii'))
+        multicast(f'Username {nickname} has joined the chat'.encode('ascii'))
+        client.send('Connected to the server'.encode('ascii'))
 
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
