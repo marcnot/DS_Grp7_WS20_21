@@ -1,7 +1,6 @@
 import threading
 import socket
 import struct
-import time
 
 clients = []
 servers = []
@@ -104,6 +103,15 @@ def start_server():
     print("Server is listening...")
     receive()
 
+def start_backup_server():
+    while True:
+        backup_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        backup_server.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+        backup_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        backup_server.bind((bind_addr, multicast_server_server_port+1))
+        print("Start-backup_server")
+        server_message = backup_server.recv(1024).decode('ascii')
+
 
 def ask_server():
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -122,17 +130,18 @@ def recv_server():
         receive_server_message = multicast_reciever.recv(1024).decode('ascii')
         print(receive_server_message)
         print("recv.Server")
-
+        start_backup_server()
     except:
         print("Test")
         multicast_reciever.close
         start_server()
 
-def heartbeat():
+#def heartbeat():
 
 def check_server():
     ask_server()
-    recv_server()
+    recv_thread = threading.Thread(target=recv_server())
+    recv_thread.start()
 
 
 check_server()
