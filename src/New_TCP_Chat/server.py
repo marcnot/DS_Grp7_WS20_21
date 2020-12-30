@@ -1,21 +1,33 @@
 import threading
 import socket
+import struct
 
 hostname = socket.gethostname()
 tcp_host = socket.gethostbyname(hostname)
 tcp_port = 5555
 
+udp_host = socket.gethostbyname(hostname)
+udp_port = 6060
+
+multicast_addr = '224.0.0.1'
+bind_addr = '0.0.0.0'
+port = 3000
+
+
 def send_address():
     while True:
-        broadcast_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        broadcast_listener.bind(('', 5544))
-        broadcast_message = broadcast_listener.recv(1024).decode('ascii')
+        multicast_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
+        multicast_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+        multicast_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        multicast_listener.bind((bind_addr, port))
+        broadcast_message = multicast_listener.recv(1024).decode('ascii')
         new_values = broadcast_message.split(",")
         if new_values[0] == '991199':
-            udp_address = str(new_values[1])
-            udp_port = int(new_values[2])
+            udp_client_address = str(new_values[1])
+            udp_client_port = int(new_values[2])
             broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            broadcast_sender.sendto(f'{tcp_host},{tcp_port}'.encode('ascii'), (udp_address, udp_port))
+            broadcast_sender.sendto(f'{tcp_host},{tcp_port}'.encode('ascii'), (udp_client_address, udp_client_port))
             broadcast_sender.close()
         else:
             print("Wrong identifier")

@@ -1,17 +1,28 @@
 import socket
 import threading
+import struct
+
 
 hostname = socket.gethostname()
 host = socket.gethostbyname(hostname)
 udp_port = 5566
 
+multicast_addr = '224.0.0.1'
+multicast_port = 3000
+
 nickname = input("Wähle einen Benutzernamen: ")
 
 def ask_host():
-    broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    broadcast_sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    broadcast_sender.sendto(f'991199,{host},{udp_port}'.encode('ascii'), ('255.255.255.255', 5544))
-    broadcast_sender.close()
+    multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ttl = struct.pack('b', 1)
+    multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    multicast_sender.sendto(f'991199,{host},{udp_port}'.encode('ascii'), (multicast_addr, multicast_port))
+    multicast_sender.close()
+
+    # broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # broadcast_sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # broadcast_sender.sendto(f'991199,{host},{udp_port}'.encode('ascii'), ('255.255.255.255', 5544))
+    # broadcast_sender.close()
 
 
 def recv_host():
