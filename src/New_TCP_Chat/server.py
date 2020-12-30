@@ -3,6 +3,7 @@ import socket
 import struct
 
 clients = []
+servers = []
 nicknames = []
 
 hostname = socket.gethostname()
@@ -14,18 +15,19 @@ bind_addr = '0.0.0.0'
 
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
+multicast_server_server_recv_port = 4040
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 
 
 def send_address():
     while True:
-        multicast_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
-        multicast_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-        multicast_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        multicast_listener.bind((bind_addr, multicast_client_server_port))
-        broadcast_message = multicast_listener.recv(1024).decode('ascii')
+        multicast_client_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+        multicast_client_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        multicast_client_listener.bind((bind_addr, multicast_client_server_port))
+        broadcast_message = multicast_client_listener.recv(1024).decode('ascii')
         new_values = broadcast_message.split(",")
         if new_values[0] == '991199':
             udp_client_address = str(new_values[1])
@@ -34,7 +36,22 @@ def send_address():
             broadcast_sender.sendto(f'{tcp_host},{tcp_port}'.encode('ascii'), (udp_client_address, udp_client_port))
             broadcast_sender.close()
         else:
-            print("Wrong identifier")
+            print("Wrong client identifier")
+
+
+def send_server():
+    while True:
+        multicast_server_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        multicast_server_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+        multicast_server_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        multicast_server_listener.bind((bind_addr, multicast_server_server_port))
+        server_message = multicast_server_listener.recv(1024).decode('ascii')
+        if server_message == '1111':
+            print(server_message)
+            multicast_server_listener.sendto("1112".encode('ascii'), (multicast_addr, multicast_server_server_recv_port))
+            multicast_server_listener.close()
+        else:
+            print("Wrong server identifier")
 
 
 def multicast(message):
@@ -77,12 +94,43 @@ def receive():
 
 
 def start_server():
-    thread = threading.Thread(target=send_address)
-    thread.start()
+    client_thread = threading.Thread(target=send_address)
+    client_thread.start()
+    server_thread = threading.Thread(target=send_server)
+    server_thread.start()
     server.bind((tcp_host, tcp_port))
     server.listen()
     print("Server is listening...")
     receive()
 
 
-start_server()
+def ask_server():
+    multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ttl = struct.pack('b', 1)
+    multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    multicast_server_sender.sendto("1111".encode('ascii'), (multicast_addr, multicast_server_server_port))
+    multicast_server_sender.close()
+
+def recv_server():
+    multicast_reciever = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    multicast_reciever.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+    multicast_reciever.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    multicast_reciever.bind((bind_addr, multicast_server_server_recv_port))
+    #receive_server_message = multicast_reciever.recv(1024).decode('ascii')
+    #print(receive_server_message)
+    multicast_reciever.close
+    #print("recv_server")
+    #return receive_server_message
+
+
+def check_server():
+    ask_server()
+    recv_server()
+    if recv_server() == "1112":
+        print("Ein Server existiert")
+    else:
+        start_server()
+
+
+check_server()
+
