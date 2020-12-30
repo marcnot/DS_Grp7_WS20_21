@@ -6,12 +6,11 @@ hostname = socket.gethostname()
 tcp_host = socket.gethostbyname(hostname)
 tcp_port = 5555
 
-udp_host = socket.gethostbyname(hostname)
-udp_port = 6060
-
 multicast_addr = '224.0.0.1'
 bind_addr = '0.0.0.0'
-port = 3000
+
+multicast_client_server_port = 3000
+multicast_server_server_port = 4000
 
 
 def send_address():
@@ -20,7 +19,7 @@ def send_address():
         membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
         multicast_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
         multicast_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        multicast_listener.bind((bind_addr, port))
+        multicast_listener.bind((bind_addr, multicast_client_server_port))
         broadcast_message = multicast_listener.recv(1024).decode('ascii')
         new_values = broadcast_message.split(",")
         if new_values[0] == '991199':
