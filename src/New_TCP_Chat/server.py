@@ -2,6 +2,9 @@ import threading
 import socket
 import struct
 
+clients = []
+nicknames = []
+
 hostname = socket.gethostname()
 tcp_host = socket.gethostbyname(hostname)
 tcp_port = 5555
@@ -11,6 +14,8 @@ bind_addr = '0.0.0.0'
 
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
 def send_address():
@@ -32,19 +37,6 @@ def send_address():
             print("Wrong identifier")
 
 
-thread = threading.Thread(target=send_address)
-thread.start()
-
-
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((tcp_host, tcp_port))
-
-server.listen()
-
-clients = []
-nicknames = []
-
-
 def multicast(message):
     for client in clients:
         client.send(message)
@@ -64,6 +56,7 @@ def handle(client):
             nicknames.remove(nickname)
             break
 
+
 def receive():
     while True:
         client, address = server.accept()
@@ -82,5 +75,14 @@ def receive():
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
-print("Server is listening...")
-receive()
+
+def start_server():
+    thread = threading.Thread(target=send_address)
+    thread.start()
+    server.bind((tcp_host, tcp_port))
+    server.listen()
+    print("Server is listening...")
+    receive()
+
+
+start_server()
