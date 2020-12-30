@@ -1,6 +1,7 @@
 import threading
 import socket
 import struct
+import time
 
 clients = []
 servers = []
@@ -115,21 +116,23 @@ def recv_server():
     multicast_reciever = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     multicast_reciever.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
     multicast_reciever.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    multicast_reciever.settimeout(5.0)
     multicast_reciever.bind((bind_addr, multicast_server_server_recv_port))
-    #receive_server_message = multicast_reciever.recv(1024).decode('ascii')
-    #print(receive_server_message)
-    multicast_reciever.close
-    #print("recv_server")
-    #return receive_server_message
+    try:
+        receive_server_message = multicast_reciever.recv(1024).decode('ascii')
+        print(receive_server_message)
+        print("recv.Server")
 
+    except:
+        print("Test")
+        multicast_reciever.close
+        start_server()
+
+def heartbeat():
 
 def check_server():
     ask_server()
     recv_server()
-    if recv_server() == "1112":
-        print("Ein Server existiert")
-    else:
-        start_server()
 
 
 check_server()
