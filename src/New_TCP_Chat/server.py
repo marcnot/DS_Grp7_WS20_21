@@ -16,25 +16,24 @@ bind_addr = '0.0.0.0'
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 multicast_server_server_recv_port = 4040
+multicast_client_server_recv_port = 3030
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 
 
-def send_address():
+def send_clients():
     while True:
         multicast_client_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
         multicast_client_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         multicast_client_listener.bind((bind_addr, multicast_client_server_port))
-        broadcast_message = multicast_client_listener.recv(1024).decode('ascii')
-        new_values = broadcast_message.split(",")
-        if new_values[0] == '991199':
-            udp_client_address = str(new_values[1])
-            udp_client_port = int(new_values[2])
-            broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            broadcast_sender.sendto(f'{tcp_host},{tcp_port}'.encode('ascii'), (udp_client_address, udp_client_port))
-            broadcast_sender.close()
+        client_message = multicast_client_listener.recv(1024).decode('ascii')
+        new_values = client_message.split(",")
+        if new_values[0] == '2222':
+            print(client_message)
+            multicast_client_listener.sendto(f'1112,{tcp_host},{tcp_port}'.encode('ascii'), (multicast_addr, multicast_client_server_recv_port))
+            multicast_client_listener.close()
         else:
             print("Wrong client identifier")
 
@@ -94,7 +93,7 @@ def receive():
 
 
 def start_server():
-    client_thread = threading.Thread(target=send_address)
+    client_thread = threading.Thread(target=send_clients)
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
@@ -124,7 +123,7 @@ def recv_server():
     multicast_reciever = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     multicast_reciever.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
     multicast_reciever.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    multicast_reciever.settimeout(5.0)
+    multicast_reciever.settimeout(2.5)
     multicast_reciever.bind((bind_addr, multicast_server_server_recv_port))
     try:
         receive_server_message = multicast_reciever.recv(1024).decode('ascii')
