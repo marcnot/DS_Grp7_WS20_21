@@ -23,7 +23,7 @@ def ask_host():
     multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    multicast_sender.sendto(f'2222,{host},{udp_port}'.encode('ascii'), (multicast_addr, multicast_server_client_port))
+    multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, multicast_server_client_port))
     multicast_sender.close()
 
     # broadcast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
