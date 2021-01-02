@@ -26,13 +26,10 @@ membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 def send_clients():
     while True:
         multicast_client_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-        # multicast_client_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         group = socket.inet_aton(multicast_addr)
         mreq = struct.pack('4sL', group, socket.INADDR_ANY)
         multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         multicast_client_listener.bind(server_address)
-        # multicast_client_listener.bind(('', multicast_client_server_port))
         client_message, address = multicast_client_listener.recvfrom(1024)
         new_values = client_message.decode('ascii').split(",")
         if new_values[0] == '2222':
@@ -47,13 +44,17 @@ def send_clients():
 def send_server():
     while True:
         multicast_server_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        multicast_server_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-        multicast_server_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        multicast_server_listener.bind((bind_addr, multicast_server_server_port))
-        server_message = multicast_server_listener.recv(1024).decode('ascii')
-        if server_message == '1111':
-            print(server_message)
-            multicast_server_listener.sendto("1112".encode('ascii'), (multicast_addr, multicast_server_server_recv_port))
+        group = socket.inet_aton(multicast_addr)
+        mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+        multicast_server_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        multicast_server_listener.bind((tcp_host, 4000))
+        server_message, address = multicast_server_listener.recvfrom(1024)
+        #print("ADDRESS: " + address)
+        server_message_decode = server_message.decode("ascii")
+        print("SERVER MESSAGE: " + server_message_decode)
+        if server_message_decode == '1111':
+            print(server_message_decode)
+            multicast_server_listener.sendto("1112".encode('ascii'), address)
             multicast_server_listener.close()
         else:
             print("Wrong server identifier")
@@ -122,8 +123,26 @@ def ask_server():
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    #group = socket.inet_aton(multicast_addr)
+    #mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+    #multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    #multicast_server_sender.bind(tcp_host, 4000)
+
+    ##multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ##ttl = struct.pack('b', 1)
+    ##multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     multicast_server_sender.sendto("1111".encode('ascii'), (multicast_addr, multicast_server_server_port))
-    multicast_server_sender.close()
+    multicast_server_sender.settimeout(2.5)
+    try:
+        receive_server_message, address = multicast_server_sender.recvfrom(1024)
+        print(receive_server_message)
+        print("recv.Server")
+        start_backup_server()
+    except:
+        print("Start Server")
+        #multicast_reciever.close
+        start_server()
+    #multicast_server_sender.close()
 
 def recv_server():
     multicast_reciever = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -137,7 +156,7 @@ def recv_server():
         print("recv.Server")
         start_backup_server()
     except:
-        print("Test")
+        print("Start Server")
         multicast_reciever.close
         start_server()
 
@@ -145,8 +164,8 @@ def recv_server():
 
 def check_server():
     ask_server()
-    recv_thread = threading.Thread(target=recv_server())
-    recv_thread.start()
+    #recv_thread = threading.Thread(target=recv_server())
+    #recv_thread.start()
 
 
 check_server()
