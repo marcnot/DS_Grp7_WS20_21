@@ -10,7 +10,7 @@ hostname = socket.gethostname()
 tcp_host = socket.gethostbyname(hostname)
 tcp_port = 5555
 
-multicast_addr = '224.0.0.1'
+multicast_addr = '224.1.1.1'
 server_address = ('', 3000)
 bind_addr = '0.0.0.0'
 

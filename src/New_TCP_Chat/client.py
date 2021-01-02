@@ -7,7 +7,7 @@ hostname = socket.gethostname()
 host = socket.gethostbyname(hostname)
 # udp_port = 5566
 
-multicast_addr = '224.0.0.1'
+multicast_addr = '224.1.1.1'
 
 multicast_server_client_port = 3000
 
