@@ -11,6 +11,7 @@ tcp_host = socket.gethostbyname(hostname)
 tcp_port = 5555
 
 multicast_addr = '224.0.0.1'
+server_address = ('', 3000)
 bind_addr = '0.0.0.0'
 
 multicast_client_server_port = 3000
@@ -25,9 +26,13 @@ membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 def send_clients():
     while True:
         multicast_client_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-        multicast_client_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        multicast_client_listener.bind((bind_addr, multicast_client_server_port))
+        # multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+        # multicast_client_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        group = socket.inet_aton(multicast_addr)
+        mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+        multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        multicast_client_listener.bind(server_address)
+        # multicast_client_listener.bind(('', multicast_client_server_port))
         client_message, address = multicast_client_listener.recvfrom(1024)
         new_values = client_message.decode('ascii').split(",")
         if new_values[0] == '2222':
