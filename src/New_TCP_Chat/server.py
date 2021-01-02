@@ -51,10 +51,11 @@ def send_server():
         server_message, address = multicast_server_listener.recvfrom(1024)
         #print("ADDRESS: " + address)
         server_message_decode = server_message.decode("ascii")
-        print("SERVER MESSAGE: " + server_message_decode)
         if server_message_decode == '1111':
-            print(server_message_decode)
             multicast_server_listener.sendto("1112".encode('ascii'), address)
+            servers.append(address)
+            print("SERVERLISTE:")
+            print(servers)
             multicast_server_listener.close()
         else:
             print("Wrong server identifier")
