@@ -4,10 +4,9 @@ import struct
 import sys
 
 
-
 hostname = socket.gethostname()
 host = socket.gethostbyname(hostname)
-udp_port = 5566
+# udp_port = 5566
 
 multicast_addr = '224.0.0.1'
 bind_addr = '0.0.0.0'
