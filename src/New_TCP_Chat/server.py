@@ -219,7 +219,6 @@ def ask_server():
 
 def check_server():
     ask_server()
-    print("Hello")
 
 
 check_server()
