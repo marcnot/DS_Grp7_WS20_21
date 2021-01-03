@@ -6,18 +6,24 @@ clients = []
 servers = []
 nicknames = []
 
+
 hostname = socket.gethostname()
-tcp_host = socket.gethostbyname(hostname)
+host_ip = socket.gethostbyname(hostname)
 tcp_port = 5555
 
+
 multicast_addr = '224.1.1.1'
-server_address = ('', 3000)
+
 bind_addr = '0.0.0.0'
 
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
-multicast_server_server_recv_port = 4040
-multicast_client_server_recv_port = 3030
+
+client_server_address = (host_ip, multicast_client_server_port)
+server_server_address = (host_ip, multicast_server_server_port)
+
+lead_server = True
+
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
@@ -29,13 +35,11 @@ def send_clients():
         group = socket.inet_aton(multicast_addr)
         mreq = struct.pack('4sL', group, socket.INADDR_ANY)
         multicast_client_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        multicast_client_listener.bind(server_address)
+        multicast_client_listener.bind(client_server_address)
         client_message, address = multicast_client_listener.recvfrom(1024)
         new_values = client_message.decode('ascii').split(",")
         if new_values[0] == '2222':
-            print(client_message)
-            print(address)
-            multicast_client_listener.sendto(f'1112,{tcp_host},{tcp_port}'.encode('ascii'), address)
+            multicast_client_listener.sendto(f'1112,{host_ip},{tcp_port}'.encode('ascii'), address)
             multicast_client_listener.close()
         else:
             print("Wrong client identifier")
@@ -47,9 +51,8 @@ def send_server():
         group = socket.inet_aton(multicast_addr)
         mreq = struct.pack('4sL', group, socket.INADDR_ANY)
         multicast_server_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        multicast_server_listener.bind((tcp_host, 4000))
+        multicast_server_listener.bind(server_server_address)
         server_message, address = multicast_server_listener.recvfrom(1024)
-        #print("ADDRESS: " + address)
         server_message_decode = server_message.decode("ascii")
         if server_message_decode == '1111':
             multicast_server_listener.sendto("1112".encode('ascii'), address)
@@ -101,17 +104,20 @@ def receive():
 
 
 def start_server():
+    lead_server = True
     client_thread = threading.Thread(target=send_clients)
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
-    server.bind((tcp_host, tcp_port))
+    server.bind((host_ip, tcp_port))
     server.listen()
     print("Server is listening...")
     receive()
 
+
 def start_backup_server():
     while True:
+        lead_server = False
         backup_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         backup_server.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
         backup_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -124,14 +130,6 @@ def ask_server():
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    #group = socket.inet_aton(multicast_addr)
-    #mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-    #multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-    #multicast_server_sender.bind(tcp_host, 4000)
-
-    ##multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    ##ttl = struct.pack('b', 1)
-    ##multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     multicast_server_sender.sendto("1111".encode('ascii'), (multicast_addr, multicast_server_server_port))
     multicast_server_sender.settimeout(2.5)
     try:
@@ -141,32 +139,13 @@ def ask_server():
         start_backup_server()
     except:
         print("Start Server")
-        #multicast_reciever.close
         start_server()
-    #multicast_server_sender.close()
 
-def recv_server():
-    multicast_reciever = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    multicast_reciever.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-    multicast_reciever.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    multicast_reciever.settimeout(2.5)
-    multicast_reciever.bind((bind_addr, multicast_server_server_recv_port))
-    try:
-        receive_server_message = multicast_reciever.recv(1024).decode('ascii')
-        print(receive_server_message)
-        print("recv.Server")
-        start_backup_server()
-    except:
-        print("Start Server")
-        multicast_reciever.close
-        start_server()
 
 #def heartbeat():
 
 def check_server():
     ask_server()
-    #recv_thread = threading.Thread(target=recv_server())
-    #recv_thread.start()
 
 
 check_server()
