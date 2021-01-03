@@ -1,11 +1,19 @@
 import threading
 import socket
 import struct
+import time
+import json
+
+clients = []
+servers = []
+nicknames = []
 
 
 hostname = socket.gethostname()
 host_ip = socket.gethostbyname(hostname)
 tcp_port = 5555
+tcp_server_port = 5588
+
 
 multicast_addr = '224.1.1.1'
 
@@ -14,43 +22,15 @@ bind_addr = '0.0.0.0'
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 
-server_heartbeat_port = 4001
-server_server_list_port = 4002
-server_client_list_port = 4003
-server_leader_election_port = 4004
-
 client_server_address = (host_ip, multicast_client_server_port)
 server_server_address = (host_ip, multicast_server_server_port)
-heartbeat_address = (host_ip, server_heartbeat_port)
 
 lead_server = True
 
-clients = []
-servers = []
-nicknames = []
-
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-heartbeat_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-backupserver_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+server_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
-
-def get_neighbour(ring, current_node_ip, direction):
-    current_node_index = ring.index(current_node_ip) if current_node_ip in ring else -1
-    if current_node_index != -1:
-        if direction == 'left':
-            if current_node_index + 1 == len(ring):
-                return ring[0]
-            else:
-                return ring[current_node_index + 1]
-        else:
-            if current_node_index == 0:
-                return ring[len(ring) - 1]
-            else:
-                return ring[current_node_index - 1]
-    else:
-        return None
 
 
 def send_clients():
@@ -80,19 +60,12 @@ def send_server():
         server_message_decode = server_message.decode("ascii")
         if server_message_decode == '1111':
             multicast_server_listener.sendto("1112".encode('ascii'), address)
-            append_server(address)
-            print("SERVERLISTE:")
-            print(servers)
-            #ring = server_ring(servers)
-            neighbour = get_neighbour(servers, server_server_address, 'left')
-            print(neighbour)
+            #servers.append(address)
+            #print("SERVERLISTE:")
+            #print(servers)
             multicast_server_listener.close()
         else:
             print("Wrong server identifier")
-
-
-def append_server(server_ip):
-    servers.append(server_ip)
 
 
 def multicast(message):
@@ -134,23 +107,97 @@ def receive():
         thread.start()
 
 
+def handle_backup_server(backup_server):
+    while True:
+        try:
+            server_list = json.dumps(servers).encode('ascii')
+            backup_server.send(server_list)
+            #backup_server.send("Beat".encode('ascii'))
+            # print(backup_server.getpeername())
+            #server_list = pickle.dumps(servers)
+            #backup_server.send(server_list)
+            time.sleep(5)
+        except:
+            servers.remove(backup_server.getpeername())
+            backup_server.close
+            print("Server disconnect")
+            print(servers)
+            break
+
+
+def receive_backup_server():
+    while True:
+        backup_server, address = server_server.accept()
+        print(address)
+        servers.append(address)
+        print("SERVERLISTE:")
+        print(servers)
+
+        # backup_server.send('BEAT'.encode('ascii'))
+        # message = backup_server.recv(1024).decode('ascii')
+        # print(message)
+        # time.sleep(10)
+
+        backup_server.send('Connected to the server cluster'.encode('ascii'))
+
+        backup_thread = threading.Thread(target=handle_backup_server, args=(backup_server,))
+        backup_thread.start()
+
+
 def start_server():
     lead_server = True
-    append_server(server_server_address)
     client_thread = threading.Thread(target=send_clients)
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
- 
-    heartbeat_tcp.bind((host_ip, server_heartbeat_port))
-    heartbeat_tcp.listen()
     server.bind((host_ip, tcp_port))
     server.listen()
-
+    server_server.bind((host_ip, 5588))
+    server_server.listen()
     print("Server is listening...")
-    heartbeat()
-    receive()
+    receive_thread = threading.Thread(target=receive)
+    receive_thread.start()
+    #receive()
+    print("Ready for Servers")
+    #receive_backup_server()
+    receive_backup_thread = threading.Thread(target=receive_backup_server)
+    receive_backup_thread.start()
+    print("DONE")
 
+
+def start_backup_server():
+    backup_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    backup_server.connect((host_ip, 5588))
+    while True:
+        try:
+            print("start_backup_server")
+            #message = backup_server.recv(1024)
+            #server_list = pickle.loads(message)
+            #message = backup_server.recv(1024)
+            #print(server_list)
+            server_list = backup_server.recv(1024)
+            server_list = json.loads(server_list).decode('ascii')
+            print(server_list)
+            time.sleep(5)
+            #test = backup_server.getsockname()
+            #backup_server.send(str(test).encode('ascii'))
+        except:
+            print("An error occurred!")
+            backup_server.close()
+            #ask_server()
+            break
+
+
+def receive_server(backup_server):
+    while True:
+        try:
+            backup_server.send("BEAT".encode('ascii'))
+            message = backup_server.recv(1024).decode('ascii')
+            print(message)
+        except:
+            print("An error occurred!")
+            backup_server.close()
+            break
 
 def ask_server():
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -168,50 +215,10 @@ def ask_server():
         start_server()
 
 
-def start_backup_server():
-    print("Start Backup Server")
-    backupserver_tcp.connect(heartbeat_address)
-
-    backup_heartbeat_recv_thread = threading.Thread(target=backup_heartbeat_recv)
-    backup_heartbeat_recv_thread.start()
-
-
-def backup_heartbeat_recv():
-    while True:
-        try:
-            message = backupserver_tcp.recv(1024)
-            time.sleep(2)
-            backupserver_tcp.send("hallo lebe :)")
-        except:
-            print("Connection lost to Server!")
-            backupserver_tcp.close()
-            break
-
-
-def heartbeat():
-    print("heartbeat")
-    while True:
-        heartbeat_server, address = heartbeat_tcp.accept()
-        heartbeat_server.send('BEAT'.encode('ascii'))
-        heartbeat_msg = heartbeat_tcp.recv(1024)
-
-        heartbeat_server_thread = threading.Thread(target=handle_heartbeat, args=(heartbeat_server,))
-        heartbeat_server_thread.start()
-
-
-def handle_heartbeat(heartbeat_server):
-    print("handle_heartbeat")
-    while True:
-        try:
-            message = heartbeat_tcp.recv(1024)
-            print(message)
-        except:
-            pass
-
+#def heartbeat():
 
 def check_server():
     ask_server()
 
 
 check_server()
-
