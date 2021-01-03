@@ -2,15 +2,10 @@ import threading
 import socket
 import struct
 
-clients = []
-servers = []
-nicknames = []
-
 
 hostname = socket.gethostname()
 host_ip = socket.gethostbyname(hostname)
 tcp_port = 5555
-
 
 multicast_addr = '224.1.1.1'
 
@@ -19,14 +14,43 @@ bind_addr = '0.0.0.0'
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 
+server_heartbeat_port = 4001
+server_server_list_port = 4002
+server_client_list_port = 4003
+server_leader_election_port = 4004
+
 client_server_address = (host_ip, multicast_client_server_port)
 server_server_address = (host_ip, multicast_server_server_port)
+heartbeat_address = (host_ip, server_heartbeat_port)
 
 lead_server = True
 
+clients = []
+servers = []
+nicknames = []
+
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+heartbeat_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+backupserver_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
+
+def get_neighbour(ring, current_node_ip, direction):
+    current_node_index = ring.index(current_node_ip) if current_node_ip in ring else -1
+    if current_node_index != -1:
+        if direction == 'left':
+            if current_node_index + 1 == len(ring):
+                return ring[0]
+            else:
+                return ring[current_node_index + 1]
+        else:
+            if current_node_index == 0:
+                return ring[len(ring) - 1]
+            else:
+                return ring[current_node_index - 1]
+    else:
+        return None
 
 
 def send_clients():
@@ -56,12 +80,19 @@ def send_server():
         server_message_decode = server_message.decode("ascii")
         if server_message_decode == '1111':
             multicast_server_listener.sendto("1112".encode('ascii'), address)
-            servers.append(address)
+            append_server(address)
             print("SERVERLISTE:")
             print(servers)
+            #ring = server_ring(servers)
+            neighbour = get_neighbour(servers, server_server_address, 'left')
+            print(neighbour)
             multicast_server_listener.close()
         else:
             print("Wrong server identifier")
+
+
+def append_server(server_ip):
+    servers.append(server_ip)
 
 
 def multicast(message):
@@ -105,25 +136,20 @@ def receive():
 
 def start_server():
     lead_server = True
+    append_server(server_server_address)
     client_thread = threading.Thread(target=send_clients)
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
+ 
+    heartbeat_tcp.bind((host_ip, server_heartbeat_port))
+    heartbeat_tcp.listen()
     server.bind((host_ip, tcp_port))
     server.listen()
+
     print("Server is listening...")
+    heartbeat()
     receive()
-
-
-def start_backup_server():
-    while True:
-        lead_server = False
-        backup_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        backup_server.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-        backup_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        backup_server.bind((bind_addr, multicast_server_server_port+1))
-        print("Start-backup_server")
-        server_message = backup_server.recv(1024).decode('ascii')
 
 
 def ask_server():
@@ -142,7 +168,46 @@ def ask_server():
         start_server()
 
 
-#def heartbeat():
+def start_backup_server():
+    print("Start Backup Server")
+    backupserver_tcp.connect(heartbeat_address)
+
+    backup_heartbeat_recv_thread = threading.Thread(target=backup_heartbeat_recv)
+    backup_heartbeat_recv_thread.start()
+
+
+def backup_heartbeat_recv():
+    while True:
+        try:
+            message = backupserver_tcp.recv(1024)
+            time.sleep(2)
+            backupserver_tcp.send("hallo lebe :)")
+        except:
+            print("Connection lost to Server!")
+            backupserver_tcp.close()
+            break
+
+
+def heartbeat():
+    print("heartbeat")
+    while True:
+        heartbeat_server, address = heartbeat_tcp.accept()
+        heartbeat_server.send('BEAT'.encode('ascii'))
+        heartbeat_msg = heartbeat_tcp.recv(1024)
+
+        heartbeat_server_thread = threading.Thread(target=handle_heartbeat, args=(heartbeat_server,))
+        heartbeat_server_thread.start()
+
+
+def handle_heartbeat(heartbeat_server):
+    print("handle_heartbeat")
+    while True:
+        try:
+            message = heartbeat_tcp.recv(1024)
+            print(message)
+        except:
+            pass
+
 
 def check_server():
     ask_server()
