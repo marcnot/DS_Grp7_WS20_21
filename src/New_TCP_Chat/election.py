@@ -4,13 +4,13 @@ import json
 my_uid= "192.168.178.105"
 ring_port= 10001
 leader_uid= ""
-participant = False
+participant = True
 members = ['192.168.178.105', '192.168.178.50']
 buffer_size = 1024
 
 election_message = {
     "mid": my_uid,
-    "isLeader": False}
+    "isLeader": True}
 
 def form_ring(members):
     sorted_binary_ring = sorted([socket.inet_aton(member) for member in members])
@@ -44,10 +44,16 @@ print(neighbour)
 
 
 ring_socket= socket.socket(socket.AF_INET,  socket.SOCK_DGRAM)
-ring_socket.bind((my_uid,  ring_port))
+#ring_socket.bind((my_uid,  ring_port))
 print("Node is up and running at {}:{}".format(my_uid, ring_port))
 
 print('\nWaiting to receive election message...\n')
+
+election_msg = json.dumps(election_message).encode()
+#election_msg1 = election_
+
+ring_socket.sendto(election_msg, (neighbour, ring_port))
+
 data, address = ring_socket.recvfrom(buffer_size)
 election_message= json.loads(data.decode())
 
@@ -55,7 +61,8 @@ if election_message['isLeader']:
     leader_uid= election_message["mid"]
     # forward received election message to left neighbour
     participant = False
-    ring_socket.sendto(json.dumps(election_message), neighbour)
+    ring_socket.sendto(json.dumps(election_message).encode(), (neighbour, ring_port))
+    print("is Leader")
 
 if election_message['mid'] < my_uid and not participant:
     new_election_message= {
@@ -64,11 +71,11 @@ if election_message['mid'] < my_uid and not participant:
 
     participant = True
     # send received election message to left neighbour
-    ring_socket.sendto(json.dumps(new_election_message), neighbour)
+    ring_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, ring_port))
 elif election_message['mid'] > my_uid:
     # send received election message to left neighbour
     participant = True
-    ring_socket.sendto(json.dumps(election_message), neighbour)
+    ring_socket.sendto(json.dumps(election_message).encode(), (neighbour, ring_port))
 elif election_message['mid'] == my_uid:
     leader_uid = my_uid
     new_election_message= {
@@ -77,4 +84,4 @@ elif election_message['mid'] == my_uid:
 
 # send new election message to left neighbour
 participant = False
-ring_socket.sendto(json.dumps(new_election_message), neighbour)
+ring_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, ring_port))

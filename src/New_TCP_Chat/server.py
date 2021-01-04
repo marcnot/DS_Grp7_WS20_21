@@ -17,7 +17,6 @@ host_ip = socket.gethostbyname(hostname)
 tcp_port = 5555
 tcp_server_port = 5588
 
-
 multicast_addr = '224.1.1.1'
 
 bind_addr = '0.0.0.0'
@@ -35,6 +34,25 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 
+###############################################################################
+
+election_port = 10001
+buffersize = 1024
+neighbour_elect = "192.168.178.105"
+
+election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+election_socket.bind((host_ip, election_port))
+
+print("Election Socket is running at {}.{}".format(host_ip, election_port))
+
+
+while True:
+    data, address = election_socket.recvfrom(buffersize)
+    print((data).decode("utf-8"))
+    election_socket.sendto(("Hi zweiter PC").encode("utf-8"), (neighbour_elect, election_port))
+    time.sleep(5)
+
+###############################################################################
 
 def send_clients():
     while True:
