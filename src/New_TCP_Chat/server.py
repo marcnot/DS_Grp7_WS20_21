@@ -79,7 +79,7 @@ election_socket.bind((host_ip, election_port))
 
 print("Election Socket is running at {}:{}".format(host_ip, election_port))
 
-election_socket.sendto(json.dumps(election_message).endcode(), (neighbour, election_port))
+election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
 
 data, address = election_socket.recvfrom(buffersize)
 election_message = json.loads(data.decode())
