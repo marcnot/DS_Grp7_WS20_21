@@ -1,11 +1,10 @@
 import socket
 import threading
 import struct
-
+import time
 
 hostname = socket.gethostname()
 host = socket.gethostbyname(hostname)
-# udp_port = 5566
 
 multicast_addr = '224.1.1.1'
 
@@ -24,15 +23,10 @@ def ask_host():
     return port, address_tcp
 
 
-tcp_address, tcp_port = ask_host()
-
-print(tcp_address, tcp_port)
 nickname = input("Wähle einen Benutzernamen: ")
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((tcp_address, tcp_port))
 
 
-def receive():
+def receive(client):
     while True:
         try:
             message = client.recv(1024).decode('ascii')
@@ -43,18 +37,35 @@ def receive():
         except:
             print("An error occurred!")
             client.close()
-            ask_host()
+            time.sleep(5)
+            reconnect()
             break
 
-def write():
+
+def write(client):
     while True:
-        message = f'{nickname}: {input("")}'
-        client.send(message.encode('ascii'))
+        try:
+            message = f'{nickname}: {input("")}'
+            client.send(message.encode('ascii'))
+        except:
+            print("reconnected")
 
 
+def connect():
+    tcp_address, tcp_port = ask_host()
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect((tcp_address, tcp_port))
+    print("TEst")
+    write_thread = threading.Thread(target=write, args=(client,))
+    write_thread.start()
+    print("TEst 2")
+    receive_thread = threading.Thread(target=receive, args=(client,))
+    receive_thread.start()
+    print("TEst 3")
 
-receive_thread = threading.Thread(target=receive)
-receive_thread.start()
+def reconnect():
 
-write_thread = threading.Thread(target=write)
-write_thread.start()
+    connect()
+
+
+connect()
