@@ -41,7 +41,7 @@ buffersize = 1024
 neighbour_elect = ["192.168.178.50", "192.168.178.105"]
 election_message = {
     "mid": host_ip,
-    "isLeader": True}
+    "isLeader": False}
 leader_uid= ""
 participant = True
 
@@ -79,12 +79,10 @@ election_socket.bind((host_ip, election_port))
 
 print("Election Socket is running at {}:{}".format(host_ip, election_port))
 
-election_msg = json.dumps(election_message).encode()
-
-election_socket.sendto(election_msg, (neighbour, election_port))
+election_socket.sendto(json.dumps(election_message).endcode(), (neighbour, election_port))
 
 data, address = election_socket.recvfrom(buffersize)
-election_message= json.loads(data.decode())
+election_message = json.loads(data.decode())
 
 if election_message['isLeader']:
     leader_uid= election_message["mid"]
@@ -112,10 +110,10 @@ elif election_message['mid'] == host_ip:
         "isLeader": True}
     print("New Leader is:")
     print(new_election_message)
+    # send new election message to left neighbour
+    participant = False
+    election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
 
-# send new election message to left neighbour
-participant = False
-election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
 
 #while True:
 #    print("test")
@@ -125,8 +123,6 @@ election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, el
 #    print((data).decode("utf-8"))
 
 #    time.sleep(5)
-
-break
 
 ###############################################################################
 
