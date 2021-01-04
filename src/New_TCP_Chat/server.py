@@ -3,6 +3,7 @@ import socket
 import struct
 import time
 import json
+import pickle
 
 clients = []
 servers = []
@@ -110,33 +111,23 @@ def receive():
 def handle_backup_server(backup_server):
     while True:
         try:
-            server_list = json.dumps(servers).encode('ascii')
-            backup_server.send(server_list)
-            #backup_server.send("Beat".encode('ascii'))
-            # print(backup_server.getpeername())
-            #server_list = pickle.dumps(servers)
-            #backup_server.send(server_list)
+            backup_server.send("Your Data")
             time.sleep(5)
         except:
             servers.remove(backup_server.getpeername())
             backup_server.close
-            print("Server disconnect")
-            print(servers)
+            print("Server " + str(backup_server.getpeername()) + " disconnected")
             break
 
 
 def receive_backup_server():
     while True:
         backup_server, address = server_server.accept()
-        print(address)
+        print(address[0])
+        print(address[1])
         servers.append(address)
         print("SERVERLISTE:")
         print(servers)
-
-        # backup_server.send('BEAT'.encode('ascii'))
-        # message = backup_server.recv(1024).decode('ascii')
-        # print(message)
-        # time.sleep(10)
 
         backup_server.send('Connected to the server cluster'.encode('ascii'))
 
@@ -171,20 +162,11 @@ def start_backup_server():
     while True:
         try:
             print("start_backup_server")
-            #message = backup_server.recv(1024)
-            #server_list = pickle.loads(message)
-            #message = backup_server.recv(1024)
-            #print(server_list)
-            server_list = backup_server.recv(1024)
-            server_list = json.loads(server_list).decode('ascii')
-            print(server_list)
             time.sleep(5)
-            #test = backup_server.getsockname()
-            #backup_server.send(str(test).encode('ascii'))
         except:
             print("An error occurred!")
             backup_server.close()
-            #ask_server()
+            ask_server()
             break
 
 
