@@ -39,11 +39,12 @@ membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 election_port = 10001
 buffersize = 1024
 neighbour_elect = ["192.168.178.50", "192.168.178.105"]
+uid = ""
 election_message = {
-    "mid": host_ip,
+    "mid": uid,
     "isLeader": False}
 leader_uid= ""
-participant = True
+participant = False
 
 def form_ring(members):
     sorted_binary_ring = sorted([socket.inet_aton(member) for member in members])
@@ -79,40 +80,54 @@ election_socket.bind((host_ip, election_port))
 
 print("Election Socket is running at {}:{}".format(host_ip, election_port))
 
-election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
+i = 0
 
-data, address = election_socket.recvfrom(buffersize)
-election_message = json.loads(data.decode())
+while i < 5:
 
-if election_message['isLeader']:
-    leader_uid= election_message["mid"]
-    # forward received election message to left neighbour
-    participant = False
-    election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
-    print("is Leader")
+    #election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
+    print("Gesendet:")
+    print(election_message)
+    data, address = election_socket.recvfrom(buffersize)
+    print("Data" + data.decode())
+    election_message = json.loads(data.decode())
+    print(election_message)
 
-if election_message['mid'] < host_ip and not participant:
-    new_election_message= {
-        "mid": host_ip,
-        "isLeader": False}
+    print(type(election_message["mid"]))
 
-    participant = True
-    # send received election message to left neighbour
-    election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
-elif election_message['mid'] > host_ip:
-    # send received election message to left neighbour
-    participant = True
-    election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
-elif election_message['mid'] == host_ip:
-    leader_uid = host_ip
-    new_election_message= {
-        "mid": host_ip,
-        "isLeader": True}
-    print("New Leader is:")
-    print(new_election_message)
-    # send new election message to left neighbour
-    participant = False
-    election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
+    if election_message['isLeader']:
+        leader_uid= election_message["mid"]
+        # forward received election message to left neighbour
+        participant = False
+        election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
+        print("is Leader")
+
+    if election_message['mid'] < host_ip and not participant: #192.168.178.50
+        new_election_message= {
+            "mid": host_ip,
+            "isLeader": False}
+
+        participant = True
+        # send received election message to left neighbour
+        election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
+    elif election_message['mid'] > host_ip:
+        # send received election message to left neighbour
+        participant = True
+        election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
+    elif election_message['mid'] == host_ip:
+        leader_uid = host_ip
+        new_election_message= {
+            "mid": host_ip,
+            "isLeader": True}
+        print("New Leader is:")
+        print(new_election_message)
+        # send new election message to left neighbour
+        participant = False
+        election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
+
+    i+=1
+    time.sleep(3)
+
+print(leader_uid)
 
 
 #while True:
@@ -288,6 +303,6 @@ def start_backup_server(tcp_server_ip):
             break
 
 
-ask_server()
+#ask_server()
 
 
