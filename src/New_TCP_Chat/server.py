@@ -111,7 +111,7 @@ def receive():
 def handle_backup_server(backup_server):
     while True:
         try:
-            backup_server.send("Your Data")
+            backup_server.send("Your Data".encode('utf-8'))
             time.sleep(5)
         except:
             servers.remove(backup_server.getpeername())
@@ -156,18 +156,7 @@ def start_server():
     print("DONE")
 
 
-def start_backup_server():
-    backup_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    backup_server.connect((host_ip, 5588))
-    while True:
-        try:
-            print("start_backup_server")
-            time.sleep(5)
-        except:
-            print("An error occurred!")
-            backup_server.close()
-            ask_server()
-            break
+
 
 
 def receive_server(backup_server):
@@ -189,18 +178,27 @@ def ask_server():
     multicast_server_sender.settimeout(2.5)
     try:
         receive_server_message, address = multicast_server_sender.recvfrom(1024)
+        tcp_server_ip = address
         print(receive_server_message)
         print("recv.Server")
         start_backup_server()
+        return(tcp_server_ip)
     except:
         print("Start Server")
         start_server()
 
 
-#def heartbeat():
+tcp_ip = ask_server()
 
-def check_server():
-    ask_server()
-
-
-check_server()
+def start_backup_server():
+    backup_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    backup_server.connect((tcp_ip, 5588))
+    while True:
+        try:
+            data = backup_server.recv(1024).decode('utf-8')
+            print(data)
+        except:
+            print("An error occurred!")
+            backup_server.close()
+            ask_server()
+            break
