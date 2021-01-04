@@ -143,7 +143,7 @@ def start_server():
     server_thread.start()
     server.bind((host_ip, tcp_port))
     server.listen()
-    server_server.bind((host_ip, 5588))
+    server_server.bind((host_ip, tcp_server_port))
     server_server.listen()
     print("Server is listening...")
     receive_thread = threading.Thread(target=receive)
@@ -178,21 +178,18 @@ def ask_server():
     multicast_server_sender.settimeout(2.5)
     try:
         receive_server_message, address = multicast_server_sender.recvfrom(1024)
-        tcp_server_ip = address
-        print(receive_server_message)
+        tcp_server_ip = str(address[0])
         print("recv.Server")
-        start_backup_server()
-        return(tcp_server_ip)
+        print(tcp_server_ip)
+        start_backup_server(tcp_server_ip)
     except:
         print("Start Server")
         start_server()
 
 
-tcp_ip = ask_server()
-
-def start_backup_server():
+def start_backup_server(tcp_server_ip):
     backup_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    backup_server.connect((tcp_ip, 5588))
+    backup_server.connect((tcp_server_ip, tcp_server_port))
     while True:
         try:
             data = backup_server.recv(1024).decode('utf-8')
@@ -202,3 +199,8 @@ def start_backup_server():
             backup_server.close()
             ask_server()
             break
+
+
+ask_server()
+
+
