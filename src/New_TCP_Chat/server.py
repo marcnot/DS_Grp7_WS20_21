@@ -80,7 +80,7 @@ neighbour = get_neighbour(ring, host_ip, 'right')
 print("Election Socket is running at {}:{}".format(host_ip, election_port))
 
 #election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
-election_message, address = election_socket.recvfrom(buffersize)
+#election_message, address = election_socket.recvfrom(buffersize)
 leader_uid= ""
 
 def leader_election (election_message, server_host_ip, participant, leader_uid):
@@ -130,17 +130,24 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 
 #leader_uid = leader_election (election_message, host_ip, participant, leader_uid)
 print(leader_uid)
-print("ende")
 
 ##############DYNMAIC DISCOVERY OF HOSTS####################
 dynamic_discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+group = socket.inet_aton(multicast_addr)
+mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+dynamic_discovery_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 dynamic_discovery_socket.bind((host_ip, dynamic_discovery_port))
 
 def dynamic_disovery():
     while True:
         dynamic_discovery_socket.sendto("Hi".encode("utf-8"), (multicast_addr, dynamic_discovery_port))
         discovery_msg, address = dynamic_discovery_socket.recvfrom(buffersize)
+        print(address)
         print(discovery_msg)
+        time.sleep(2)
+
+
+dynamic_disovery()
 ############################################################
 
 #while True:
