@@ -20,7 +20,7 @@ tcp_server_port = 5588
 
 multicast_addr = '224.1.1.1'
 
-leader = True
+leader = False
 
 
 multicast_client_server_port = 3000
@@ -46,7 +46,7 @@ heartbeat_socket.bind((host_ip, heartbeat_port))
 
 ##############################RING FORMING#################################
 
-neighbour_elect = ["192.168.178.50", "192.168.178.105"] #eventuell in servers umbennen
+neighbour_elect = ["192.168.178.26", "192.168.178.50"] #eventuell in servers umbennen
 election_message = {
     "mid": host_ip,
     "isLeader": False}
@@ -76,7 +76,7 @@ def get_neighbour(ring, current_node_ip, direction='left'):
     else:
         return None
 
-ring = form_ring(neighbour_elect)
+ring = form_ring(servers)
 neighbour = get_neighbour(ring, host_ip, 'right')
 
 ##########################LEADER ELECTION###################################
@@ -232,6 +232,9 @@ def handle_backups():
         print(address)    
 
 def start_server():
+
+    leader = True
+
     client_thread = threading.Thread(target=send_clients)
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
@@ -261,6 +264,9 @@ def receive_server(backup_server):
             break
 
 def ask_server():
+
+    servers.append(host_ip)
+
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
@@ -278,8 +284,12 @@ def ask_server():
 
 def start_backup_server():
     collect_servers()
+    server_collector_thread = threading.Thread(target=server_collector)
+    server_collector_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
+    #neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
+    #print(neighbour)
     while True:
         multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ttl = struct.pack('b', 1)
@@ -288,14 +298,18 @@ def start_backup_server():
         time.sleep(10)
 
 def heartbeat():
-    pass
-    #if leader == True:
-        #neighbour = get_neighbour(ring, host_ip, 'right')
-        #heartbeat_socket.sendto("Beat".encode(), (neighbour, heartbeat_port))
-        #if i < 5:
-            #beat, address = heartbeat_socket.recvfrom(buffersize)
-    #elif leader == False:
-        #break
+    while True:
+        if leader == True:
+            neighbour = get_neighbour(ring, host_ip, 'right')
+            heartbeat_socket.sendto("beat", (neighbour, heartbeat_port))
+            beat, address = heartbeat_socket.recvfrom(buffersize)
+            print("print leader beat")
+        elif leader == False:
+            neighbour = get_neighbour(ring, host_ip, 'right')
+            beat, address = heartbeat_socket.recvfrom(buffersize)
+            heartbeat_socket.sendto("beat", (neighbour, heartbeat_port))
+            print("not leader beat")
+
 
 def collect_servers():
     collection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -306,16 +320,13 @@ def collect_servers():
     try:
         while True:
             receive_collect_message, address = collection_socket.recvfrom(1024)
-            print(receive_collect_message)
-            print(address[0])
-            if address[0] not in servers:
+            if address[0] not in servers and address[0] != host_ip:
                 servers.append(address[0])
-            time.sleep(2)
     except:
         print("Serverlist:")
         print(servers)
 
 
-ask_server()
 
+ask_server()
 
