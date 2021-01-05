@@ -3,7 +3,6 @@ import socket
 import struct
 import time
 import json
-import pickle
 import ipaddress
 
 
@@ -25,25 +24,27 @@ bind_addr = '0.0.0.0'
 
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
+election_port = 4050
+buffersize = 1024
 
 client_server_address = (host_ip, multicast_client_server_port)
 server_server_address = (host_ip, multicast_server_server_port)
 
-lead_server = True
-
-
+##Socket definition
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 
+election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+##Socketbinds
+election_socket.bind((host_ip, election_port))
+
 ###############################################################################
 
-election_port = 10001
-buffersize = 1024
-neighbour_elect = ["192.168.178.50", "192.168.178.105"] #, "192.168.178.255", "192.168.178.49"
-uid = host_ip
+neighbour_elect = ["192.168.178.50", "192.168.178.105"] #eventuell in servers umbennen
 election_message = {
-    "mid": uid,
+    "mid": host_ip,
     "isLeader": False}
 participant = False
 
@@ -74,11 +75,9 @@ def get_neighbour(ring, current_node_ip, direction='left'):
 ring = form_ring(neighbour_elect)
 neighbour = get_neighbour(ring, host_ip, 'right')
 
-election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-election_socket.bind((host_ip, election_port))
+
 
 print("Election Socket is running at {}:{}".format(host_ip, election_port))
-
 
 #election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
 election_message, address = election_socket.recvfrom(buffersize)
@@ -94,7 +93,6 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 
     while i < len(neighbour_elect)+1:
 
-        print(i)
         if election_message['isLeader']:
             leader_uid= election_message["mid"]
             # forward received election message to left neighbour
@@ -127,7 +125,7 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
         election_message = json.loads(election_message.decode())  
         election_IP = ipaddress.IPv4Address(election_message["mid"])
         election_host_IP = ipaddress.IPv4Address(server_host_ip)
-        
+
     return(leader_uid)
 
 leader_uid = leader_election (election_message, host_ip, participant, leader_uid)
