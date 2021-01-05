@@ -158,12 +158,13 @@ def send_server():
         multicast_server_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         multicast_server_listener.bind(server_server_address)
         server_message, address = multicast_server_listener.recvfrom(1024)
-        server_message_decode = server_message.decode("ascii")
-        if server_message_decode == '1111':
-            multicast_server_listener.sendto("1112".encode('ascii'), address)
-            multicast_server_listener.close()
-        else:
-            print("Wrong server identifier")
+        multicast_server_listener.sendto(host_ip.encode('ascii'), address)
+        servers.append(address)
+        print("Servers in send Server: ")
+        print(servers)
+        time.sleep(2)
+        multicast_server_listener.close()
+
 
 
 def multicast(message):
@@ -276,7 +277,7 @@ def ask_server():
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     multicast_server_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    multicast_server_sender.sendto("1111".encode('ascii'), (multicast_addr, multicast_server_server_port))
+    multicast_server_sender.sendto(host_ip.encode('ascii'), (multicast_addr, multicast_server_server_port))
     multicast_server_sender.settimeout(0.5)
     try:
         receive_server_message, address = multicast_server_sender.recvfrom(1024)
