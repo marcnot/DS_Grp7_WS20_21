@@ -88,7 +88,9 @@ leader_uid= ""
 
 def leader_election (election_message, server_host_ip, participant, leader_uid):
     
-    election_message = json.loads(election_message.decode())
+    neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
+
+    #election_message = json.loads(election_message)
     election_IP = ipaddress.IPv4Address(election_message["mid"])
     election_host_IP = ipaddress.IPv4Address(server_host_ip)
 
@@ -233,7 +235,8 @@ def handle_backups():
 
 def start_server():
     print("LEADERELECTION:")
-    leader_election (election_message, host_ip, participant, leader_uid)
+    leader_ip = leader_election (election_message, host_ip, participant, leader_uid)
+    print(leader_ip)
     print("--------------")
 
     leader = True
