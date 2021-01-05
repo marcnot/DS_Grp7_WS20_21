@@ -112,6 +112,9 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 
     while i < len(neighbour_elect):
         
+        election_IP = ipaddress.IPv4Address(election_message["mid"])
+        election_host_IP = ipaddress.IPv4Address(server_host_ip)
+
         print(i)
         if election_message['isLeader']:
             print("if 1")
@@ -131,7 +134,7 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
         elif election_IP > election_host_IP:
             print("elif 1")
                 # send received election message to left neighbour
-            participant = True
+            participant = False
             election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
         elif election_IP == election_host_IP:
             print("elif 2")
@@ -145,7 +148,10 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
         else:
             print("error")
         i += 1
+
         election_message, address = election_socket.recvfrom(buffersize)
+        election_message = json.loads(election_message.decode())
+        print(election_message)
     print(leader_uid)
 
 leader_election (election_message, host_ip, participant, leader_uid)
