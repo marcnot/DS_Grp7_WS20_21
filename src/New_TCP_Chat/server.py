@@ -25,6 +25,7 @@ bind_addr = '0.0.0.0'
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 election_port = 4050
+dynamic_discovery_port = 4040
 buffersize = 1024
 
 client_server_address = (host_ip, multicast_client_server_port)
@@ -40,7 +41,7 @@ election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 ##Socketbinds
 election_socket.bind((host_ip, election_port))
 
-###############################################################################
+##############################RING FORMING#################################
 
 neighbour_elect = ["192.168.178.50", "192.168.178.105"] #eventuell in servers umbennen
 election_message = {
@@ -50,9 +51,9 @@ participant = False
 
 def form_ring(members):
     sorted_binary_ring = sorted([socket.inet_aton(member) for member in members])
-    print(sorted_binary_ring)
+    #print(sorted_binary_ring)
     sorted_ip_ring = [socket.inet_ntoa(node) for node in sorted_binary_ring]
-    print(sorted_ip_ring)
+    #print(sorted_ip_ring)
     return sorted_ip_ring
 
 
@@ -75,8 +76,7 @@ def get_neighbour(ring, current_node_ip, direction='left'):
 ring = form_ring(neighbour_elect)
 neighbour = get_neighbour(ring, host_ip, 'right')
 
-
-
+##########################LEADER ELECTION###################################
 print("Election Socket is running at {}:{}".format(host_ip, election_port))
 
 #election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
@@ -128,9 +128,20 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 
     return(leader_uid)
 
-leader_uid = leader_election (election_message, host_ip, participant, leader_uid)
+#leader_uid = leader_election (election_message, host_ip, participant, leader_uid)
 print(leader_uid)
 print("ende")
+
+##############DYNMAIC DISCOVERY OF HOSTS####################
+dynamic_discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+dynamic_discovery_socket.bind((host_ip, dynamic_discovery_port))
+
+def dynamic_disovery():
+    while True:
+        dynamic_discovery_socket.sendto("Hi".encode("utf-8"), (multicast_addr, dynamic_discovery_port))
+        discovery_msg, address = dynamic_discovery_socket.recvfrom(buffersize)
+        print(discovery_msg)
+############################################################
 
 #while True:
 #    print("test")
