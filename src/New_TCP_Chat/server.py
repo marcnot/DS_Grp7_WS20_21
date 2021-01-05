@@ -25,7 +25,8 @@ bind_addr = '0.0.0.0'
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 election_port = 4050
-dynamic_discovery_port = 10001
+heartbeat_port = 10001
+
 buffersize = 1024
 
 client_server_address = (host_ip, multicast_client_server_port)
@@ -34,6 +35,7 @@ server_server_address = (host_ip, multicast_server_server_port)
 ##Socket definition
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -131,12 +133,6 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 #leader_uid = leader_election (election_message, host_ip, participant, leader_uid)
 print(leader_uid)
 
-##############DYNAMIC DISCOVERY OF HOSTS####################
-
-#print("Dynamic Discovery Socket is running at {}:{}".format(host_ip, dynamic_discovery_port))
-
-
-###############################################################################
 
 def send_clients():
     while True:
@@ -236,6 +232,16 @@ def receive_backup_server():
         backup_thread = threading.Thread(target=handle_backup_server, args=(backup_server,))
         backup_thread.start()
 
+def handle_backups():
+    while True:
+        handle_backup_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        group = socket.inet_aton(multicast_addr)
+        mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+        handle_backup_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        handle_backup_socket.bind((host_ip, heartbeat_port))
+        server_message, address = handle_backup_socket.recvfrom(1024)
+        print(server_message)
+        print(address)    
 
 def start_server():
     client_thread = threading.Thread(target=send_clients)
@@ -250,7 +256,7 @@ def start_server():
     receive_thread = threading.Thread(target=receive)
     receive_thread.start()
     print("Ready for Servers")
-    receive_backup_thread = threading.Thread(target=receive_backup_server)
+    receive_backup_thread = threading.Thread(target=handle_backups)
     receive_backup_thread.start()
     print("DONE")
 
@@ -277,26 +283,21 @@ def ask_server():
         tcp_server_ip = str(address[0])
         print("recv.Server")
         print(tcp_server_ip)
-        start_backup_server(tcp_server_ip)
+        start_backup_server()
     except:
         print("Start Server")
         start_server()
 
 
-def start_backup_server(tcp_server_ip):
-    backup_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    backup_server.connect((tcp_server_ip, tcp_server_port))
+def start_backup_server():
     while True:
-        try:
-            data = backup_server.recv(1024).decode('utf-8')
-            print(data)
-        except:
-            print("An error occurred!")
-            backup_server.close()
-            ask_server()
-            break
+        multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        ttl = struct.pack('b', 1)
+        multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+        multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, heartbeat_port))
+        time.sleep(2)
 
 
-#ask_server()
+ask_server()
 
 
