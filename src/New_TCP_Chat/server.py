@@ -20,7 +20,6 @@ tcp_server_port = 5588
 
 multicast_addr = '224.1.1.1'
 
-bind_addr = '0.0.0.0'
 
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
@@ -34,10 +33,6 @@ server_server_address = (host_ip, multicast_server_server_port)
 
 ##Socket definition
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
-
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 ##Socketbinds
@@ -159,12 +154,11 @@ def send_server():
         multicast_server_listener.bind(server_server_address)
         server_message, address = multicast_server_listener.recvfrom(1024)
         multicast_server_listener.sendto(host_ip.encode('ascii'), address)
-        servers.append(address)
+        servers.append(address[0])
         print("Servers in send Server: ")
         print(servers)
         time.sleep(2)
         multicast_server_listener.close()
-
 
 
 def multicast(message):
@@ -205,34 +199,6 @@ def receive():
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
-
-def handle_backup_server(backup_server):
-    while True:
-        try:
-            backup_server.send("Your Data".encode("ascii"))
-            time.sleep(5)
-        except:
-            #servers.remove(backup_server.getpeername())
-            backup_server_name = backup_server.getpeername()
-            server_dic.pop(backup_server_name[1])
-            print("Serverlist nach Backupserver disconnect")
-            print(server_dic)
-            backup_server.close
-            print("Server " + str(backup_server.getpeername()) + " disconnected")
-            break
-
-
-def receive_backup_server():
-    while True:
-        backup_server, address = server_server.accept()
-        #servers.append(address)
-        server_dic[address[1]] = {"server_ip" : address[0], "is_leader" : False}
-        print("SERVERLISTE:")
-        print(server_dic)
-        backup_server.send('Connected to the server cluster'.encode('ascii'))
-        backup_thread = threading.Thread(target=handle_backup_server, args=(backup_server,))
-        backup_thread.start()
-
 def handle_backups():
     while True:
         handle_backup_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -251,8 +217,6 @@ def start_server():
     server_thread.start()
     server.bind((host_ip, tcp_port))
     server.listen()
-    server_server.bind((host_ip, tcp_server_port))
-    server_server.listen()
     print("Server is listening...")
     receive_thread = threading.Thread(target=receive)
     receive_thread.start()
@@ -281,9 +245,9 @@ def ask_server():
     multicast_server_sender.settimeout(0.5)
     try:
         receive_server_message, address = multicast_server_sender.recvfrom(1024)
-        tcp_server_ip = str(address[0])
-        print("recv.Server")
-        print(tcp_server_ip)
+        print(receive_server_message)
+        print(address[0])
+        print("Start Backup Server")
         start_backup_server()
     except:
         print("Start Server")
@@ -291,6 +255,8 @@ def ask_server():
 
 
 def start_backup_server():
+    server_thread = threading.Thread(target=send_server)
+    server_thread.start()
     while True:
         multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ttl = struct.pack('b', 1)
