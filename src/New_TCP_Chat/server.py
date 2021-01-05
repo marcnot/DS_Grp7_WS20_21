@@ -20,11 +20,14 @@ tcp_server_port = 5588
 
 multicast_addr = '224.1.1.1'
 
+leader = True
+
 
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 election_port = 4050
-heartbeat_port = 10001
+backup_port = 10001
+heartbeat_port = 4060
 
 buffersize = 1024
 
@@ -34,9 +37,11 @@ server_server_address = (host_ip, multicast_server_server_port)
 ##Socket definition
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+heartbeat_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 ##Socketbinds
 election_socket.bind((host_ip, election_port))
+heartbeat_socket.bind((host_ip, heartbeat_port))
 
 ##############################RING FORMING#################################
 
@@ -205,7 +210,7 @@ def handle_backups():
         group = socket.inet_aton(multicast_addr)
         mreq = struct.pack('4sL', group, socket.INADDR_ANY)
         handle_backup_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        handle_backup_socket.bind((host_ip, heartbeat_port))
+        handle_backup_socket.bind((host_ip, backup_port))
         server_message, address = handle_backup_socket.recvfrom(1024)
         print(server_message)
         print(address)    
@@ -248,6 +253,7 @@ def ask_server():
         print(receive_server_message)
         print(address[0])
         print("Start Backup Server")
+        leader == False
         start_backup_server()
     except:
         print("Start Server")
@@ -261,8 +267,18 @@ def start_backup_server():
         multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ttl = struct.pack('b', 1)
         multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-        multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, heartbeat_port))
+        multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, backup_port))
         time.sleep(2)
+
+def heartbeat():
+
+    if leader == True:
+        neighbour = get_neighbour(ring, host_ip, 'right')
+        heartbeat_socket.sendto("Beat".encode(), (neighbour, heartbeat_port))
+        if i < 5:
+            beat, address = heartbeat_socket.recvfrom(buffersize)
+    elif leader == False:
+        break
 
 
 ask_server()
