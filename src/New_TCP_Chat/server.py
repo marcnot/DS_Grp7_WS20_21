@@ -40,8 +40,8 @@ membership = socket.inet_aton(multicast_addr) + socket.inet_aton(bind_addr)
 
 election_port = 10001
 buffersize = 1024
-neighbour_elect = ["192.168.178.50", "192.168.178.105"]
-uid = "192.168.178.23"
+neighbour_elect = ["192.168.178.50", "192.168.178.105", "192.168.178.255", "192.168.178.49"]
+uid = host_ip
 election_message = {
     "mid": uid,
     "isLeader": False}
@@ -75,15 +75,6 @@ def get_neighbour(ring, current_node_ip, direction='left'):
 ring = form_ring(neighbour_elect)
 neighbour = get_neighbour(ring, host_ip, 'right')
 
-
-start = ipaddress.IPv4Address(host_ip)
-end = ipaddress.IPv4Address("192.168.178.23")
-
-print(start < end)
-
-if election_message["mid"] < host_ip:
-    print("geht!")
-
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 election_socket.bind((host_ip, election_port))
 
@@ -92,7 +83,6 @@ print("Election Socket is running at {}:{}".format(host_ip, election_port))
 
 #election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
 election_message, address = election_socket.recvfrom(buffersize)
-
 leader_uid= ""
 
 def leader_election (election_message, server_host_ip, participant, leader_uid):
@@ -110,10 +100,8 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 
     i = 0
 
-    while i < len(neighbour_elect):
-        
-        election_IP = ipaddress.IPv4Address(election_message["mid"])
-        election_host_IP = ipaddress.IPv4Address(server_host_ip)
+    while i < len(neighbour_elect)+1:
+
 
         print(i)
         if election_message['isLeader']:
@@ -150,11 +138,16 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
         i += 1
 
         election_message, address = election_socket.recvfrom(buffersize)
-        election_message = json.loads(election_message.decode())
+        election_message = json.loads(election_message.decode())  
+        election_IP = ipaddress.IPv4Address(election_message["mid"])
+        election_host_IP = ipaddress.IPv4Address(server_host_ip)
         print(election_message)
+    print("Leader_UID")
     print(leader_uid)
 
+print("test")
 leader_election (election_message, host_ip, participant, leader_uid)
+print("ende")
 
 #while True:
 #    print("test")
