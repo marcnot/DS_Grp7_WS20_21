@@ -127,7 +127,7 @@ def leader_election (election_message, server_host_ip, participant):
             participant = True
             election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
         elif election_IP == election_host_IP:
-            leader_uid = election_host_IP
+            leader_uid = str(election_host_IP)
             new_election_message= {
                 "mid": str(election_host_IP),
                 "isLeader": True}
