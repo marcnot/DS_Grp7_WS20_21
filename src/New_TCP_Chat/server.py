@@ -159,7 +159,10 @@ def send_server():
         multicast_server_listener.bind(server_server_address)
         server_message, address = multicast_server_listener.recvfrom(1024)
         multicast_server_listener.sendto(host_ip.encode('ascii'), address)
-        servers.append(address[0])
+
+        if address[0] not in servers:
+            servers.append(address[0])
+
         print("Servers in send Server: ")
         print(servers)
         time.sleep(2)
@@ -250,8 +253,6 @@ def ask_server():
     multicast_server_sender.settimeout(0.5)
     try:
         receive_server_message, address = multicast_server_sender.recvfrom(1024)
-        print(receive_server_message)
-        print(address[0])
         print("Start Backup Server")
         leader == False
         start_backup_server()
@@ -261,6 +262,7 @@ def ask_server():
 
 
 def start_backup_server():
+    collect_servers()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
     while True:
@@ -268,7 +270,6 @@ def start_backup_server():
         ttl = struct.pack('b', 1)
         multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
         multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, backup_port))
-        time.sleep(2)
 
 def heartbeat():
     pass
@@ -280,6 +281,24 @@ def heartbeat():
     #elif leader == False:
         #break
 
+def collect_servers():
+    collection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ttl = struct.pack('b', 1)
+    collection_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    collection_socket.sendto(host_ip.encode('ascii'), (multicast_addr, multicast_server_server_port))
+    collection_socket.settimeout(0.5)
+    #try:
+        #while True:
+    print("colleciton:")
+    receive_server_message, address = collection_socket.recvfrom(1024)
+    print(receive_server_message)
+    print(address[0])
+            #if address[0] not in servers:
+            #    servers.append(address[0])
+    time.sleep(2)
+    #except:
+    print("Serverlist:")
+    print(servers)
 
 ask_server()
 
