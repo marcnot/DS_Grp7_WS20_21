@@ -271,14 +271,14 @@ def start_backup_server():
         time.sleep(2)
 
 def heartbeat():
-
-    if leader == True:
-        neighbour = get_neighbour(ring, host_ip, 'right')
-        heartbeat_socket.sendto("Beat".encode(), (neighbour, heartbeat_port))
-        if i < 5:
-            beat, address = heartbeat_socket.recvfrom(buffersize)
-    elif leader == False:
-        break
+    pass
+    #if leader == True:
+        #neighbour = get_neighbour(ring, host_ip, 'right')
+        #heartbeat_socket.sendto("Beat".encode(), (neighbour, heartbeat_port))
+        #if i < 5:
+            #beat, address = heartbeat_socket.recvfrom(buffersize)
+    #elif leader == False:
+        #break
 
 
 ask_server()
