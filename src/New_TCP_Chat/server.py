@@ -306,7 +306,6 @@ def heartbeat():
     while True:
         if leader == True:
             neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
-            print(neighbour)
             heartbeat_socket.sendto("Leaderbeat_S1".encode(), (neighbour, heartbeat_port))
             try:
                 beat, address = heartbeat_socket.recvfrom(buffersize)
@@ -331,6 +330,10 @@ def heartbeat():
                 print(election_message)
 
 def collect_servers():
+    
+    servers = []
+    servers.append(host_ip)
+
     collection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     collection_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
