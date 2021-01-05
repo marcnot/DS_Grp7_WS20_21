@@ -27,6 +27,7 @@ multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 election_port = 4050
 backup_port = 10001
+test_port = 10002
 heartbeat_port = 4060
 
 buffersize = 1024
@@ -169,6 +170,18 @@ def send_server():
         multicast_server_listener.close()
 
 
+def server_collector():
+    while True:
+        server_collector_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        group = socket.inet_aton(multicast_addr)
+        mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+        server_collector_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        server_collector_listener.bind((host_ip, test_port))
+        collect_message, address = server_collector_listener.recvfrom(1024)
+        server_collector_listener.sendto(host_ip.encode('ascii'), address)
+        server_collector_listener.close()
+
+
 def multicast(message):
     for client in clients:
         client.send(message)
@@ -223,6 +236,8 @@ def start_server():
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
+    server_thread = threading.Thread(target=server_collector)
+    server_thread.start()
     server.bind((host_ip, tcp_port))
     server.listen()
     print("Server is listening...")
@@ -270,6 +285,7 @@ def start_backup_server():
         ttl = struct.pack('b', 1)
         multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
         multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, backup_port))
+        time.sleep(10)
 
 def heartbeat():
     pass
@@ -285,20 +301,20 @@ def collect_servers():
     collection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     collection_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    collection_socket.sendto(host_ip.encode('ascii'), (multicast_addr, multicast_server_server_port))
+    collection_socket.sendto(host_ip.encode('ascii'), (multicast_addr, test_port))
     collection_socket.settimeout(0.5)
-    #try:
-        #while True:
-    print("colleciton:")
-    receive_server_message, address = collection_socket.recvfrom(1024)
-    print(receive_server_message)
-    print(address[0])
-            #if address[0] not in servers:
-            #    servers.append(address[0])
-    time.sleep(2)
-    #except:
-    print("Serverlist:")
-    print(servers)
+    try:
+        while True:
+            receive_collect_message, address = collection_socket.recvfrom(1024)
+            print(receive_collect_message)
+            print(address[0])
+            if address[0] not in servers:
+                servers.append(address[0])
+            time.sleep(2)
+    except:
+        print("Serverlist:")
+        print(servers)
+
 
 ask_server()
 
