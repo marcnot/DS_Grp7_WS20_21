@@ -20,7 +20,7 @@ tcp_server_port = 5588
 
 multicast_addr = '224.1.1.1'
 
-leader = False
+leader = True
 
 
 multicast_client_server_port = 3000
@@ -295,26 +295,22 @@ def start_backup_server():
     server_heartbeat_thread.start()
     #neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
     #print(neighbour)
-    while True:
-        multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        ttl = struct.pack('b', 1)
-        multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-        multicast_sender.sendto("2222".encode('ascii'), (multicast_addr, backup_port))
-        time.sleep(10)
 
 def heartbeat():
     print(leader)
     while True:
         if leader == True:
-            neighbour = get_neighbour(ring, host_ip, 'right')
-            heartbeat_socket.sendto("beat", (neighbour, heartbeat_port))
+            neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
+            print(neighbour)
+            heartbeat_socket.sendto("Leaderbeat_S1".encode(), (neighbour, heartbeat_port))
             beat, address = heartbeat_socket.recvfrom(buffersize)
-            print("print leader beat")
+            print(beat)
+            time.sleep(5)
         elif leader == False:
-            neighbour = get_neighbour(ring, host_ip, 'right')
+            neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
             beat, address = heartbeat_socket.recvfrom(buffersize)
-            heartbeat_socket.sendto("beat", (neighbour, heartbeat_port))
-            print("not leader beat")
+            heartbeat_socket.sendto("Non_Leaderbeat_S1".encode(), (neighbour, heartbeat_port))
+            print(beat)
 
 
 def collect_servers():
