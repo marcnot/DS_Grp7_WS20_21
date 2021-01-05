@@ -234,10 +234,7 @@ def handle_backups():
         print(address)    
 
 def start_server():
-    print("LEADERELECTION:")
-    leader_ip = leader_election (election_message, host_ip, participant, leader_uid)
-    print(leader_ip)
-    print("--------------")
+
 
     leader = True
 
@@ -292,7 +289,10 @@ def ask_server():
 
 def start_backup_server():
     collect_servers()
-
+    print("LEADERELECTION:")
+    leader_ip = leader_election (election_message, host_ip, participant, leader_uid)
+    print(leader_ip)
+    print("--------------")
     server_collector_thread = threading.Thread(target=server_collector)
     server_collector_thread.start()
     server_thread = threading.Thread(target=send_server)
