@@ -99,10 +99,12 @@ def leader_election (election_message, server_host_ip, participant):
     #print(election_message)
     #print("Data" + election_message.decode())
     election_message = json.loads(election_message.decode())
-    #print(election_message["mid"])
 
     election_IP = ipaddress.IPv4Address(election_message["mid"])
     election_host_IP = ipaddress.IPv4Address(server_host_ip)
+    print(election_IP)
+    print(type(election_host_IP))
+    print(str(election_host_IP))
 
     i = 0
 
@@ -115,7 +117,7 @@ def leader_election (election_message, server_host_ip, participant):
 
         if election_IP < election_host_IP and not participant: #192.168.178.23
             new_election_message= {
-                "mid": election_host_IP,
+                "mid": str(election_host_IP),
                 "isLeader": False}
             participant = True
             # send received election message to left neighbour
@@ -127,7 +129,7 @@ def leader_election (election_message, server_host_ip, participant):
         elif election_IP == election_host_IP:
             leader_uid = election_host_IP
             new_election_message= {
-                "mid": election_host_IP,
+                "mid": str(election_host_IP),
                 "isLeader": True}
             # send new election message to left neighbour
             participant = False
