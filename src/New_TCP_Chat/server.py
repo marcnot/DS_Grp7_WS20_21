@@ -249,6 +249,8 @@ def start_server():
     print("Ready for Servers")
     receive_backup_thread = threading.Thread(target=handle_backups)
     receive_backup_thread.start()
+    server_heartbeat_thread = threading.Thread(target=heartbeat)
+    server_heartbeat_thread.start()
     print("DONE")
 
 
@@ -284,10 +286,13 @@ def ask_server():
 
 def start_backup_server():
     collect_servers()
+
     server_collector_thread = threading.Thread(target=server_collector)
     server_collector_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
+    server_heartbeat_thread = threading.Thread(target=heartbeat)
+    server_heartbeat_thread.start()
     #neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
     #print(neighbour)
     while True:
@@ -298,6 +303,7 @@ def start_backup_server():
         time.sleep(10)
 
 def heartbeat():
+    print(leader)
     while True:
         if leader == True:
             neighbour = get_neighbour(ring, host_ip, 'right')
