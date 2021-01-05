@@ -132,22 +132,36 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 print(leader_uid)
 
 ##############DYNMAIC DISCOVERY OF HOSTS####################
-dynamic_discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-group = socket.inet_aton(multicast_addr)
-mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-dynamic_discovery_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-dynamic_discovery_socket.bind((host_ip, dynamic_discovery_port))
 
-def dynamic_disovery():
+
+print("Dynamic Discovery Socket is running at {}:{}".format(host_ip, dynamic_discovery_port))
+
+dynamic_discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+
+def dynamic_disovery_send():
+    ttl = struct.pack('b', 1)
+    dynamic_discovery_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     while True:
         dynamic_discovery_socket.sendto("Hi".encode("utf-8"), (multicast_addr, dynamic_discovery_port))
+        time.sleep(2)
+
+
+def dynamic_discovery_recv():
+
+    group = socket.inet_aton(multicast_addr)
+    mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+    dynamic_discovery_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    dynamic_discovery_socket.bind((host_ip, dynamic_discovery_port))
+
+    while True:
         discovery_msg, address = dynamic_discovery_socket.recvfrom(buffersize)
         print(address)
         print(discovery_msg)
         time.sleep(2)
 
-
-dynamic_disovery()
+dynamic_disovery_send()
+dynamic_discovery_recv()
 ############################################################
 
 #while True:
