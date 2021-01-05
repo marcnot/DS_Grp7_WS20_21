@@ -25,7 +25,7 @@ bind_addr = '0.0.0.0'
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 election_port = 4050
-dynamic_discovery_port = 4040
+dynamic_discovery_port = 10001
 buffersize = 1024
 
 client_server_address = (host_ip, multicast_client_server_port)
@@ -131,47 +131,10 @@ def leader_election (election_message, server_host_ip, participant, leader_uid):
 #leader_uid = leader_election (election_message, host_ip, participant, leader_uid)
 print(leader_uid)
 
-##############DYNMAIC DISCOVERY OF HOSTS####################
+##############DYNAMIC DISCOVERY OF HOSTS####################
 
+#print("Dynamic Discovery Socket is running at {}:{}".format(host_ip, dynamic_discovery_port))
 
-print("Dynamic Discovery Socket is running at {}:{}".format(host_ip, dynamic_discovery_port))
-
-dynamic_discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
-def dynamic_disovery_send():
-    ttl = struct.pack('b', 1)
-    dynamic_discovery_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    while True:
-        dynamic_discovery_socket.sendto("Hi".encode("utf-8"), (multicast_addr, dynamic_discovery_port))
-        time.sleep(2)
-
-
-def dynamic_discovery_recv():
-
-    group = socket.inet_aton(multicast_addr)
-    mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-    dynamic_discovery_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-    dynamic_discovery_socket.bind((host_ip, dynamic_discovery_port))
-
-    while True:
-        discovery_msg, address = dynamic_discovery_socket.recvfrom(buffersize)
-        print(address)
-        print(discovery_msg)
-        time.sleep(2)
-
-dynamic_disovery_send()
-dynamic_discovery_recv()
-############################################################
-
-#while True:
-#    print("test")
-#    message = "Hello 2 PC"
-#    election_socket.sendto((message).encode(), (neighbour, election_port))
-#    data, address = election_socket.recvfrom(buffersize)
-#    print((data).decode("utf-8"))
-
-#    time.sleep(5)
 
 ###############################################################################
 
@@ -202,9 +165,6 @@ def send_server():
         server_message_decode = server_message.decode("ascii")
         if server_message_decode == '1111':
             multicast_server_listener.sendto("1112".encode('ascii'), address)
-            #servers.append(address)
-            #print("SERVERLISTE:")
-            #print(servers)
             multicast_server_listener.close()
         else:
             print("Wrong server identifier")
