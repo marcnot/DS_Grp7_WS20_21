@@ -1,4 +1,4 @@
-# links
+#rechts
 import threading
 import socket
 import struct
@@ -19,7 +19,7 @@ tcp_server_port = 5588
 
 multicast_addr = '224.1.1.1'
 
-# global leader
+global leader
 leader = False
 
 multicast_client_server_port = 3000
@@ -49,7 +49,7 @@ heartbeat_socket.bind((host_ip, heartbeat_port))
 neighbour_elect = ["192.168.178.26", "192.168.178.50"]  # eventuell in servers umbennen
 election_message = {
     "mid": host_ip,
-    "isLeader": False}
+    "isLeader": False} #eingefügt von Patrick passt das so???
 participant = False
 
 
@@ -261,8 +261,8 @@ def start_server():
     client_thread.start()
     server_thread = threading.Thread(target=send_server)
     server_thread.start()
-    server_thread = threading.Thread(target=server_collector)
-    server_thread.start()
+    collector_thread = threading.Thread(target=server_collector)
+    collector_thread.start()
     server.bind((host_ip, tcp_port))
     server.listen()
     print("Server is listening...")
@@ -329,7 +329,7 @@ def heartbeat():
             heartbeat_socket.sendto(str(host_ip).encode(), (neighbour, heartbeat_port))
             try:
                 beat, address = heartbeat_socket.recvfrom(buffersize)
-                print("Nachbar= " + beat)
+                print(beat)
                 print("Leader " + str(leader))
                 time.sleep(5)
             except:
@@ -352,7 +352,7 @@ def heartbeat():
             heartbeat_socket.sendto(str(host_ip).encode(), (neighbour, heartbeat_port))
             try:
                 beat, address = heartbeat_socket.recvfrom(buffersize)
-                print("Nachbar= " + beat)
+                print(beat)
                 print("Leader " + str(leader))
                 time.sleep(5)
             except:
@@ -381,4 +381,3 @@ def collect_servers():
 
 
 ask_server()
-
