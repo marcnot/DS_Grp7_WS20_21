@@ -142,8 +142,7 @@ def leader_election(server_host_ip, participant, leader_uid):
         heartbeat_send()
         print("restart")
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
-    
-    return leader_test
+
         #i += 1
     
 
