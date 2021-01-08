@@ -84,6 +84,8 @@ leader_uid = ""
 
 def leader_election(server_host_ip, participant, leader_uid):
 
+    global leader
+
     election_message, address = election_socket.recvfrom(buffersize)
     election_message = json.loads(election_message.decode())
 
@@ -137,8 +139,9 @@ def leader_election(server_host_ip, participant, leader_uid):
         election_message["isLeader"] = True
         # send new election message to left neighbour
         participant = False
+        #global leader
         leader = True
-        #restart()
+        restart()
         heartbeat_send()
         print("restart")
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
