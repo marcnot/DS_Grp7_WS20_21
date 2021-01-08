@@ -137,7 +137,7 @@ def leader_election(server_host_ip, participant, leader_uid):
         election_message["isLeader"] = True
         # send new election message to left neighbour
         participant = False
-        leader_test = True
+        leader = True
         #restart()
         heartbeat_send()
         print("restart")
