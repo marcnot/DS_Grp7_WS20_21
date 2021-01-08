@@ -82,9 +82,10 @@ neighbour = get_neighbour(ring, host_ip, 'right')
 leader_uid = ""
 
 
-def leader_election(server_host_ip, participant, leader_uid):
+def leader_election(server_host_ip, leader_uid):
 
     global leader
+    global participant
 
     election_message, address = election_socket.recvfrom(buffersize)
     election_message = json.loads(election_message.decode())
@@ -108,7 +109,7 @@ def leader_election(server_host_ip, participant, leader_uid):
     print(election_message)
 
     if election_message['isLeader']:
-        print("if1 {}".format(neighbour))
+        print("if1 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         leader_uid = election_message["mid"]
         # forward received election message to left neighbour
         participant = False
@@ -116,7 +117,7 @@ def leader_election(server_host_ip, participant, leader_uid):
         election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
 
     if election_IP < election_host_IP and not participant:  # 192.168.178.23
-        print("if2 {}".format(neighbour))
+        print("if2 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         new_election_message = {
             "mid": str(election_host_IP),
             "isLeader": False}
@@ -124,15 +125,13 @@ def leader_election(server_host_ip, participant, leader_uid):
         # send received election message to left neighbour
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
     elif election_IP > election_host_IP:
-        print("elif1 {}".format(neighbour))
+        print("elif1 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         # send received election message to left neighbour
         participant = False
         election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
     elif election_IP == election_host_IP and not leader:
-        print("elif2 {}".format(neighbour))
+        print("elif2 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         leader_uid = str(election_host_IP)
-        print("leaderUID")
-        print(leader_uid)
         new_election_message = {
             "mid": str(election_host_IP),
             "isLeader": True}
@@ -265,7 +264,7 @@ def start_server():
     receive_backup_thread.start()
     server_heartbeat_thread = threading.Thread(target=heartbeat_recv)
     server_heartbeat_thread.start()
-    election_thread = threading.Thread(target=leader_election, args=(host_ip, participant, leader_uid,))
+    election_thread = threading.Thread(target=leader_election, args=(host_ip, leader_uid,))
     election_thread.start()
     print("DONE")
 
@@ -314,7 +313,7 @@ def start_backup_server():
     server_thread.start()
     server_heartbeat_thread = threading.Thread(target=heartbeat_recv)
     server_heartbeat_thread.start()
-    election_thread = threading.Thread(target=leader_election, args=(host_ip, participant, leader_uid,))
+    election_thread = threading.Thread(target=leader_election, args=(host_ip, leader_uid,))
     election_thread.start()
 
 
@@ -323,7 +322,7 @@ def heartbeat_send():
     time.sleep(1.0)
     neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
     heartbeat_socket.sendto(str(host_ip).encode(), (neighbour, heartbeat_port))
-    print("HEARTBEAT SEND HOST IP: {}, NEIGHBOUR: {}, LEADER {}".format(host_ip, neighbour, leader))
+    print("HEARTBEAT SEND HOST IP: {}, NEIGHBOUR: {}, LEADER {}, PART {}".format(host_ip, neighbour, leader, participant))
 
 
 def heartbeat_recv():
@@ -354,7 +353,7 @@ def heartbeat_recv():
                 print(election_message)
                 print("-----------")
                 election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
-                leader_election(host_ip, participant, leader_uid)
+                #leader_election(host_ip, leader_uid)
 
 
 
