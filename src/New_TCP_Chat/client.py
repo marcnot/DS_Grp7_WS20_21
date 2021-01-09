@@ -35,11 +35,10 @@ def receive(client):
             else:
                 print(message)
         except:
+
             print("An error occurred!")
-            client.close()
-            time.sleep(5)
-            reconnect()
-            break
+            time.sleep(9)
+            #client = reconnect()
 
 
 def write(client):
@@ -49,6 +48,9 @@ def write(client):
             client.send(message.encode('ascii'))
         except:
             print("reconnected")
+            #time.sleep(8)
+            client = reconnect()
+            client.send(nickname.encode('ascii'))
 
 
 def connect():
@@ -63,9 +65,14 @@ def connect():
     receive_thread.start()
     print("TEst 3")
 
-def reconnect():
 
-    connect()
+def reconnect():
+    tcp_address, tcp_port = ask_host()
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect((tcp_address, tcp_port))
+    receive_thread = threading.Thread(target=receive, args=(client,))
+    receive_thread.start()
+    return client
 
 
 connect()
