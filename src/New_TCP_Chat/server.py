@@ -199,6 +199,7 @@ def server_collector():
 
 def multicast(message):
     for client in clients:
+        print("MESSAGE TO: {}, MESSAGE: {}".format(client, message))
         client.send(message)
 
 
@@ -229,7 +230,7 @@ def receive():
         clients.append(client)
 
         print(f'Nickname of the CLient is {nickname}!')
-        multicast(f'Username {nickname} has joined the chat'.encode('ascii'))
+        multicast(f'{nickname} has joined the chat'.encode('ascii'))
         client.send('Connected to the server'.encode('ascii'))
 
         thread = threading.Thread(target=handle, args=(client,))
