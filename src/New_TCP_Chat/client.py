@@ -3,6 +3,7 @@ import threading
 import struct
 import time
 
+#Set all importent variables
 hostname = socket.gethostname()
 host = socket.gethostbyname(hostname)
 
@@ -14,6 +15,10 @@ tcp_IP = ""
 tcp_PORT = ""
 client = ""
 
+############################## ASK HOST ##################################
+# Dynamic discovery of the leadserver
+# Getting the TCP IP and PORT for the TCP connection of the chatroom
+##########################################################################
 def ask_host():
     multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
@@ -28,7 +33,11 @@ def ask_host():
 
 nickname = input("Wähle einen Benutzernamen: ")
 
-
+############################## RECEIVE FROM SERVER ##################################
+# Receive function for the servermessages
+# calling for reconnect after the TCP connection fails
+# Waits for 10 seconds after the disconnect to give the servers time for an election and restart
+#####################################################################################
 def receive(client):
     while True:
         try:
@@ -52,39 +61,46 @@ def receive(client):
 
             break
 
-
+############################## WRITE TO SERVER ##################################
+# Handles the written messages and sends them to the server via TCP
+#################################################################################
 def write(client):
     while True:
         try:
             message = f'{nickname}: {input("")}'
             client.send(message.encode('ascii'))
         except:
-            #print("reconnected")
-            #time.sleep(8)
-            #client = reconnect()
-            #client.send(nickname.encode('ascii'))
             break
 
-
+############################## SET THE CONNECTION TO THE SERVER ##################################
+# Setup function for the connection
+# asks via UDP for a leadserver and returns all importent informations
+# Connects to the TCP chatroom
+##################################################################################################
 def set_connection():
     tcp_address, tcp_port = ask_host()
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((tcp_address, tcp_port))
     return tcp_address, tcp_port, client
 
-
+############################## CREATING IMPORTENT THREADS ##################################
+# Creates all importent threads for the writing and reveiving function of the client
+############################################################################################
 def create_threads(client):
     write_thread = threading.Thread(target=write, args=(client,))
     write_thread.start()
     receive_thread = threading.Thread(target=receive, args=(client,))
     receive_thread.start()
 
-
+############################## RECONNECTING AFTER LOST CONNECTION ##################################
+# Reconnection function after disconnect
+# asks for new TCP IP and PORT via the set_conneciton function and restarts the threads
+####################################################################################################
 def reconnect():
     tcp, port, client = set_connection()
     create_threads(client)
     return client
 
-
+############################## START ##################################
 tcp_IP, tcp_PORT, client = set_connection()
 create_threads(client)

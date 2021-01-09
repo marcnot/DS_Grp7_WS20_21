@@ -1,4 +1,3 @@
-#rechts
 import threading
 import socket
 import struct
@@ -6,58 +5,65 @@ import time
 import json
 import ipaddress
 
+
+# Setting Lists for the Server
 clients = []
 servers = []
 nicknames = []
 
+#Get Hostname and HostIP
 hostname = socket.gethostname()
 host_ip = socket.gethostbyname(hostname)
-tcp_port = 5555
-tcp_server_port = 5588
 
 multicast_addr = '224.1.1.1'
 
+#Portconfiguration
 multicast_client_server_port = 3000
 multicast_server_server_port = 4000
 election_port = 4050
 backup_port = 10001
-test_port = 10002
+collect_port = 10002
 heartbeat_port = 4060
+tcp_port = 5555
+tcp_server_port = 5588
 
 buffersize = 1024
 
+#Every Server is not a Leader from the Start. The first Server will be set as True and the Backups as False.
+#This will change after the Leaderelection and the new start of servers
 leader = False
 
 client_server_address = (host_ip, multicast_client_server_port)
 server_server_address = (host_ip, multicast_server_server_port)
 
-##Socket definition
+#Socket definition
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 heartbeat_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 heartbeat_socket.settimeout(5)
 
-##Socketbinds
+#Socketbinds
 election_socket.bind((host_ip, election_port))
 heartbeat_socket.bind((host_ip, heartbeat_port))
 
-##Election 
+#Election 
 election_message = {
     "mid": host_ip,
     "isLeader": leader}
 participant = False
 
 
-##############################RING FORMING#################################
-
-
-
+############################## RING FORMING ##################################
+#The serverlist will be formated by sorting the IPs of the servers           
+##############################################################################
 def form_ring(members):
     sorted_binary_ring = sorted([socket.inet_aton(member) for member in members])
     sorted_ip_ring = [socket.inet_ntoa(node) for node in sorted_binary_ring]
     return sorted_ip_ring
 
-
+############################## GET NEIGHBOUR #################################
+# Get the left or right neighbour in the serverlist.                         
+##############################################################################
 def get_neighbour(ring, current_node_ip, direction='left'):
     current_node_index = ring.index(current_node_ip) if current_node_ip in ring else -1
     if current_node_index != -1:
@@ -74,39 +80,27 @@ def get_neighbour(ring, current_node_ip, direction='left'):
     else:
         return None
 
-
-ring = form_ring(servers)
-neighbour = get_neighbour(ring, host_ip, 'right')
-
-##########################LEADER ELECTION###################################
+########################## LEADER ELECTION ###################################
 leader_uid = ""
-
 
 def leader_election(server_host_ip, leader_uid):
 
+    #Set the variables as global the change variables outside the function
     global leader
     global participant
 
+    #receive an election message from his left neighbour
     election_message, address = election_socket.recvfrom(buffersize)
     election_message = json.loads(election_message.decode())
 
-    # election_IP = ipaddress.IPv4Address(election_message["mid"])
-    # election_host_IP = ipaddress.IPv4Address(server_host_ip)
+    #Update of the Groupview
     servers.clear()
     collect_servers()
     neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
-    print("NACHBAR")
-    print(neighbour)
-
-    # election_message = json.loads(election_message)
+ 
+    #convert the IPs to compare them 
     election_IP = ipaddress.IPv4Address(election_message["mid"])
     election_host_IP = ipaddress.IPv4Address(server_host_ip)
-
-    #i = 0
-
-    #while i < len(servers) + 1:
-    print("Empfangene Election Message")
-    print(election_message)
 
     if election_message['isLeader']:
         print("if1 NEIGHBOUR {}, PART {}".format(neighbour, participant))
@@ -138,16 +132,21 @@ def leader_election(server_host_ip, leader_uid):
         election_message["isLeader"] = True
         # send new election message to left neighbour
         participant = False
-        #global leader
         leader = True
         restart()
         heartbeat_send()
-        print("restart")
+        print("New Server is starting on {}".format(host_ip))
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
-
-        #i += 1
     
 
+############################## SEND CLIENTS ########################################################################
+# Create a socket for new Clients, to identify them and give them the TCP Port
+# Sends TCP Port and the TCP IP of the Server to the Clients
+# If the first message of the client does not include "2222" the server does respond with "Wrong client identifier"
+#
+# This function is running in a thread to continuously listen for new clients
+#
+####################################################################################################################
 def send_clients():
     while True:
         multicast_client_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -163,7 +162,14 @@ def send_clients():
         else:
             print("Wrong client identifier")
 
-
+############################## SEND SERVER #################################
+# Dynamic discovery for the new joint server in the network
+# After a second server jont the network, heartbeat will start
+# The new server will be appended to the actual serverlist
+#
+# This function is running in a thread to continuously listen for new servers
+#
+############################################################################
 def send_server():
     while True:
         multicast_server_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -184,25 +190,37 @@ def send_server():
         time.sleep(2)
         multicast_server_listener.close()
 
-
+############################## SERVER COLLECTION #################################
+# Function is running in a thread to answer groupview update requests
+# 
+##################################################################################
 def server_collector():
     while True:
         server_collector_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         group = socket.inet_aton(multicast_addr)
         mreq = struct.pack('4sL', group, socket.INADDR_ANY)
         server_collector_listener.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        server_collector_listener.bind((host_ip, test_port))
+        server_collector_listener.bind((host_ip, collect_port))
         collect_message, address = server_collector_listener.recvfrom(1024)
         server_collector_listener.sendto(host_ip.encode('ascii'), address)
         server_collector_listener.close()
 
-
+############################## MULTICAST #################################
+# Sends the received messages to all clients through the clientslist 
+# not actutally multicast, but it works ;)
+# Messages will be send with TCP and not UDP
+# Reliable Messagetransmission
+##########################################################################
 def multicast(message):
     for client in clients:
         print("MESSAGE TO: {}, MESSAGE: {}".format(client, message))
         client.send(message)
 
-
+############################## CLIENT HANDLING #################################
+# Listening to Clientmessages and updates the clientlist if a client leaves
+# Every Client has his own thread for handling the messages
+# Calls the function to send messages to other clients
+################################################################################
 def handle(client):
     while True:
         try:
@@ -217,7 +235,12 @@ def handle(client):
             nicknames.remove(nickname)
             break
 
-
+############################## RECEIVE MESSAGES FROM CLIENTS #################################
+# Listening to new TCP CLient Connections and accepting them.
+# Set given Nicknames and append IPs and Nicknames to two seperated lists
+# Starting a Thread for every client who connects to the server with an own handlemethod and pass the client object to that thread
+# Casts a message to the other Clients for new Member in the Chatroom
+##############################################################################################
 def receive():
     while True:
         client, address = server.accept()
@@ -236,7 +259,9 @@ def receive():
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
-
+############################## BACKUP SERVER HANDLING #################################
+# Handling the Backup Server and listening to new Server in the network 
+#######################################################################################
 def handle_backups():
     while True:
         handle_backup_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -246,7 +271,10 @@ def handle_backups():
         handle_backup_socket.bind((host_ip, backup_port))
         server_message, address = handle_backup_socket.recvfrom(1024)
 
-
+############################## STARTING MAINSERVER #################################
+# Only the first server will start this function to start all the importent threads and sockets
+# Binds different UDP and TCP Sockets for the Serverenviroment
+####################################################################################
 def start_server():
     leader = True
     client_thread = threading.Thread(target=send_clients)
@@ -269,6 +297,10 @@ def start_server():
     election_thread.start()
     print("DONE")
 
+############################## RESTARTING AFTER LEADER ELECTION #################################
+# function will be called after a server is the new leader to replace the importent sockets for the client/server connection
+# and handling all other Sockets for the Serverringformation
+#################################################################################################
 def restart():
     leader = True
     client_thread = threading.Thread(target=send_clients)
@@ -284,7 +316,11 @@ def restart():
     return leader
 
 
-
+############################## ASK FOR SERVER IN NETWORK #################################
+# Asks via UDP for existing servers on the multicastport in the network
+# if a server exists it will start as a backup server and the lead variable is set to False
+# if there is no response from other server, the server will start as the first one
+##########################################################################################
 def ask_server():
     servers.append(host_ip)
     multicast_server_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -305,7 +341,10 @@ def ask_server():
     return leader
         
 
-
+############################## STARTING START BACKUP SERVER #################################
+# All importent sockets and threads for the backupserver system will be startet
+# 
+#############################################################################################
 def start_backup_server():
     collect_servers()
     server_collector_thread = threading.Thread(target=server_collector)
@@ -318,22 +357,28 @@ def start_backup_server():
     election_thread.start()
 
 
+############################## HEARTBEAT #############################################
+# Heartbeat Function to discover if the neighbour is still alive
+# if there is not heartbeat the server with no response will start the leader election (LE)
+######################################################################################
 
+# Every second a server will send a "heartbeat" to his right neighbour
 def heartbeat_send():
     time.sleep(1.0)
     neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
     heartbeat_socket.sendto(str(host_ip).encode(), (neighbour, heartbeat_port))
-    print("HEARTBEAT SEND HOST IP: {}, NEIGHBOUR: {}, LEADER {}, PART {}".format(host_ip, neighbour, leader, participant))
+    print("HEARTBEAT SEND HOST IP: {}, NEIGHBOUR: {}, LEADER {}".format(host_ip, neighbour, leader))
 
 
+# Receive function for the heartbeat
+# if there is no heartbeat in 5 seconds the leader election will be startet
+# the socket throws a timeout and starts the LE
 def heartbeat_recv():
 
     while True:
         if len(servers) > 1:
             try:
                 beat, address = heartbeat_socket.recvfrom(buffersize)
-                #print(beat)
-                #print("Leader " + str(leader))
                 heartbeat_send()
             except:
 
@@ -344,29 +389,19 @@ def heartbeat_recv():
 
                 collect_servers()
                 neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
-                print("HEARTBEAT RECV HOST IP: {}, NEIGHBOUR: {}, LEADER {}".format(host_ip, neighbour, leader))
-                print("-----------")
-                print("SERVERLISTE HEARTBEAT:")
-                print(servers)
-                print("LEADER:")
-                print(leader)
-                print("ELECTION MESSAGE VERSENDET")
-                print(election_message)
-                print("-----------")
                 election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
-                #leader_election(host_ip, leader_uid)
 
 
-
-
+############################## COLLECT SERVER IN NETWORK #################################
+# Collects all server in the network and appends them to the list "servers"
+##########################################################################################
 def collect_servers():
-    #print("Leader: {}".format(leader))
     servers.clear()
     servers.append(host_ip)
     collection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
     collection_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    collection_socket.sendto(host_ip.encode('ascii'), (multicast_addr, test_port))
+    collection_socket.sendto(host_ip.encode('ascii'), (multicast_addr, collect_port))
     collection_socket.settimeout(0.5)
     try:
         while True:
@@ -377,5 +412,5 @@ def collect_servers():
         print("List Collect Servers:")
         print(servers)
 
-
+############################## START #################################
 leader = ask_server()
