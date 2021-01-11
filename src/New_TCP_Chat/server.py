@@ -46,7 +46,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 vectorclock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 heartbeat_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-heartbeat_socket.settimeout(5)
+heartbeat_socket.settimeout(2.5)
 
 #Socketbinds
 election_socket.bind((host_ip, election_port))
@@ -193,7 +193,7 @@ def send_server():
 
         print("Servers in send Server: ")
         print(servers)
-        time.sleep(2)
+        #time.sleep(2)
         multicast_server_listener.close()
 
 ############################## SERVER COLLECTION #################################
@@ -310,17 +310,11 @@ def vector_receive():
         vectorclock.append(0)
         vectorclock_clients.append(vectorclock_client)
         print("VECTORCLOCK SERVER RECV: {}".format(vectorclock))
-
         vector_init = "VC_INIT"+str(vectorclock)
         vectorclock_client.send(vector_init.encode(character_encoding))
-        #time.sleep(1)
-        #vector_cast(vectorclock)
-
         #print("VECTORCLOCK UPDATE: {}".format(vectorclock))
-
         vectorclock_thread = threading.Thread(target=vectorclock_handle, args=(vectorclock_client,))
         vectorclock_thread.start()
-
         vector_cast(vectorclock)
 
 ############################## BACKUP SERVER HANDLING #################################
