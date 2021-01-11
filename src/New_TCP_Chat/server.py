@@ -109,6 +109,7 @@ def leader_election(server_host_ip, leader_uid):
     election_host_IP = ipaddress.IPv4Address(server_host_ip)
 
     if election_message['isLeader']:
+        #print("if1")
         leader_uid = election_message["mid"]
         # forward received election message to left neighbour
         participant = False
@@ -116,6 +117,7 @@ def leader_election(server_host_ip, leader_uid):
         election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
 
     if election_IP < election_host_IP and not participant:
+        #print("if2")
         new_election_message = {
             "mid": str(election_host_IP),
             "isLeader": False}
@@ -123,10 +125,12 @@ def leader_election(server_host_ip, leader_uid):
         # send received election message to left neighbour
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
     elif election_IP > election_host_IP:
+        #"elif1")
         # send received election message to left neighbour
         participant = False
         election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
     elif election_IP == election_host_IP and not leader:
+        #print("elif2")
         leader_uid = str(election_host_IP)
         new_election_message = {
             "mid": str(election_host_IP),
@@ -457,6 +461,7 @@ def heartbeat_recv():
                 collect_servers()
                 neighbour = get_neighbour(form_ring(servers), host_ip, 'right')
                 election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
+                leader_election(host_ip, leader_uid)
 
 
 ############################## COLLECT SERVER IN NETWORK #################################
