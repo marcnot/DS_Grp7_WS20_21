@@ -41,7 +41,7 @@ def ask_host():
         address_tcp = int(receive_server_message_splitted[2])
         port = str(receive_server_message_splitted[1])
     except:
-        print("Currently no servers available")
+        #print("Currently no servers available")
         sys.exit()
     return port, address_tcp
 
@@ -62,18 +62,19 @@ def receive(client):
         except:
             client.close()
             print("An error occurred!")
+            print("Try to reconnect")
             timeout_counter = 0
             timeout_max = 10
 
             while timeout_counter <= timeout_max:
-                print("Trying to reconnect {}/{}...".format(timeout_counter, timeout_max))
-                time.sleep(1)
+                #print("Trying to reconnect {}/{}...".format(timeout_counter, timeout_max))
+                time.sleep(0.1)
                 timeout_counter += 1
                 try:
                     reconnect()
                     return timeout_counter == 10
                 except:
-                    print("No Service!")
+                    pass
             break
 
 def vectorclock_receive(vectorclock_client):
