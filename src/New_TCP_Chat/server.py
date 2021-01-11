@@ -253,15 +253,13 @@ def vectorclock_handle(vectorclock_client):
         try:
             vectorclock_rec = vectorclock_client.recv(buffersize)
             global vectorclock
-            print("VECTORC RECV: {}".format(vectorclock_rec))
+            #print("VECTORC RECV: {}".format(vectorclock_rec))
             vectorclock_rec = eval(vectorclock_rec)
             vector_client_index = vectorclock_clients.index(vectorclock_client)
-            print(vector_client_index)
-            print(vectorclock_clients)
             vectorclock_rec[0] = vectorclock[0]+1
             vectorclock = vectorclock_rec
             #print("VC REC VECTORCLOCK HANDLE {}".format(vectorclock_rec))
-            print("VECTORCLOCK AKTUELL: {}".format(vectorclock))
+            #print("VECTORCLOCK AKTUELL: {}".format(vectorclock))
             vector_cast(vectorclock)
         except:
 
@@ -324,7 +322,6 @@ def vector_receive():
         vectorclock_thread.start()
 
         vector_cast(vectorclock)
-
 
 ############################## BACKUP SERVER HANDLING #################################
 # Handling the Backup Server and listening to new Server in the network 

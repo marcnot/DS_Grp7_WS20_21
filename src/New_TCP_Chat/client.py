@@ -81,7 +81,7 @@ def vectorclock_receive(vectorclock_client):
         global vectorclock_start
         global vectorclock
 
-        print("VEC RECV: {}".format(vectorclock_send))
+        #print("VEC RECV: {}".format(vectorclock_send))
 
         if vectorclock_send[:7] == "VC_INIT":
             vectorclock_shorting = vectorclock_send[7:]
@@ -93,7 +93,7 @@ def vectorclock_receive(vectorclock_client):
             get_VC_value = vectorclock[vectorclock_start]
             vectorclock_recv[vectorclock_start] = get_VC_value+1
             vectorclock = vectorclock_recv
-            print("VECTORCLOCK: {}".format(vectorclock))
+            #print("VECTORCLOCK: {}".format(vectorclock))
 
 
 ############################## WRITE TO SERVER ##################################
@@ -114,7 +114,7 @@ def vectorclock_write (vectorclock_client):
     vectorclock[vectorclock_start] = vector_up+1
     vectorclock_send = str(vectorclock)
     #print("VECTORCLOCL CLIENT {}".format(vectorclock_client))
-    print("VECTORCLOCK WRITE {}".format(vectorclock_send))
+    #print("VECTORCLOCK WRITE {}".format(vectorclock_send))
     vectorclock_client.send(vectorclock_send.encode(character_encoding))
 
 ############################## SET THE CONNECTION TO THE SERVER ##################################
@@ -124,7 +124,6 @@ def vectorclock_write (vectorclock_client):
 ##################################################################################################
 def set_connection():
     tcp_address, tcp_port = ask_host()
-    nickname = input("Wähle einen Benutzernamen: ")
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((tcp_address, tcp_port))
     vectorclock_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -157,6 +156,6 @@ def reconnect():
 
 ############################## START ##################################
 #nickname = input("Wähle einen Benutzernamen: ")
-
+nickname = input("Wähle einen Benutzernamen: ")
 tcp_IP, tcp_PORT, client, vectorclock_client, nickname = set_connection()
 create_threads(client, vectorclock_client)
