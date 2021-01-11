@@ -83,14 +83,11 @@ def vectorclock_receive(vectorclock_client):
             print("vectorclock CLIENT {}".format(vectorclock_client))
             print("vectorclock_send {}".format(vectorclock_send))
 
-            vectorclock_shorting = vectorclock_send[7:]
-            vector_transform = eval(vectorclock_shorting)
-
             if vectorclock_send[:7] == "VC_INIT":
-                print("vector INIT")
+                vectorclock_shorting = vectorclock_send[7:]
+                vector_transform = eval(vectorclock_shorting)
                 vectorclock_start = len(vector_transform)-1
                 vectorclock = vector_transform
-                #print("vectorclock_start {}".format(vectorclock_start))
             
             get_VC_value = vectorclock[vectorclock_start]
             print("VC VALUE:{}".format(get_VC_value))

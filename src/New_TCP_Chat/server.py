@@ -224,10 +224,10 @@ def multicast(message):
 
 def vector_cast(vectorclock_send, vectorclock_recv):
     vectorclock_send[0] = vectorclock_send[0]+1
-    #print(vectorclock_recv)
+    vectorclock_send = str(vectorclock_send)
     print("VECTORCLOCK SEND: {}".format(vectorclock_send))
     for vectorclock_client in vectorclock_clients:
-        vectorclock_client.send(vectorclock_send)
+        vectorclock_client.send(vectorclock_send.encode(character_encoding))
 
 ############################## CLIENT HANDLING #################################
 # Listening to Clientmessages and updates the clientlist if a client leaves
