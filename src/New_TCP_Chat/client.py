@@ -76,25 +76,26 @@ def receive(client):
 
 def vectorclock_receive(vectorclock_client):
     while True:
-    
-        vectorclock_send = vectorclock_client.recv(buffersize).decode(character_encoding)
-        global vectorclock_start
-        global vectorclock
+        try:
+            vectorclock_send = vectorclock_client.recv(buffersize).decode(character_encoding)
+            global vectorclock_start
+            global vectorclock
 
-        #print("VEC RECV: {}".format(vectorclock_send))
+            #print("VEC RECV: {}".format(vectorclock_send))
 
-        if vectorclock_send[:7] == "VC_INIT":
-            vectorclock_shorting = vectorclock_send[7:]
-            vector_transform = eval(vectorclock_shorting)
-            vectorclock_start = len(vector_transform)-1
-            vectorclock = vector_transform
-        else:
-            vectorclock_recv = eval(vectorclock_send)
-            get_VC_value = vectorclock[vectorclock_start]
-            vectorclock_recv[vectorclock_start] = get_VC_value+1
-            vectorclock = vectorclock_recv
-            #print("VECTORCLOCK: {}".format(vectorclock))
-
+            if vectorclock_send[:7] == "VC_INIT":
+                vectorclock_shorting = vectorclock_send[7:]
+                vector_transform = eval(vectorclock_shorting)
+                vectorclock_start = len(vector_transform)-1
+                vectorclock = vector_transform
+            else:
+                vectorclock_recv = eval(vectorclock_send)
+                get_VC_value = vectorclock[vectorclock_start]
+                vectorclock_recv[vectorclock_start] = get_VC_value+1
+                vectorclock = vectorclock_recv
+                #print("VECTORCLOCK: {}".format(vectorclock))
+        except:
+            break
 
 ############################## WRITE TO SERVER ##################################
 # Handles the written messages and sends them to the server via TCP

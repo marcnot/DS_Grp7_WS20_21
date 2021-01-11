@@ -377,6 +377,8 @@ def start_server():
 #################################################################################################
 def restart():
     leader = True
+    global vectorclock
+    vectorclock = [0]
     client_thread = threading.Thread(target=send_clients)
     client_thread.start()
     server.bind((host_ip, tcp_port))
