@@ -2,6 +2,7 @@ import socket
 import threading
 import struct
 import time
+import sys
 
 #Set all importent variables
 hostname = socket.gethostname()
@@ -31,12 +32,17 @@ vectorclock_start = 0
 def ask_host():
     multicast_sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ttl = struct.pack('b', 1)
+    multicast_sender.settimeout(2)
     multicast_sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     multicast_sender.sendto("2222".encode(character_encoding), (multicast_addr, multicast_server_client_port))
-    receive_server_message, address = multicast_sender.recvfrom(buffersize)
-    receive_server_message_splitted = receive_server_message.decode(character_encoding).split(",")
-    address_tcp = int(receive_server_message_splitted[2])
-    port = str(receive_server_message_splitted[1])
+    try:
+        receive_server_message, address = multicast_sender.recvfrom(buffersize)
+        receive_server_message_splitted = receive_server_message.decode(character_encoding).split(",")
+        address_tcp = int(receive_server_message_splitted[2])
+        port = str(receive_server_message_splitted[1])
+    except:
+        print("Currently no servers available")
+        sys.exit()
     return port, address_tcp
 
 
@@ -154,6 +160,7 @@ def reconnect():
     return client, vectorclock_client
 
 ############################## START ##################################
-nickname = input("Wähle einen Benutzernamen: ")
+#nickname = input("Wähle einen Benutzernamen: ")
 tcp_IP, tcp_PORT, client, vectorclock_client = set_connection()
+nickname = input("Wähle einen Benutzernamen: ")
 create_threads(client, vectorclock_client)
