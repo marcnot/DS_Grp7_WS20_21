@@ -109,15 +109,13 @@ def leader_election(server_host_ip, leader_uid):
     election_host_IP = ipaddress.IPv4Address(server_host_ip)
 
     if election_message['isLeader']:
-        print("if1 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         leader_uid = election_message["mid"]
         # forward received election message to left neighbour
         participant = False
         heartbeat_send()
         election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
 
-    if election_IP < election_host_IP and not participant:  # 192.168.178.23
-        print("if2 NEIGHBOUR {}, PART {}".format(neighbour, participant))
+    if election_IP < election_host_IP and not participant:
         new_election_message = {
             "mid": str(election_host_IP),
             "isLeader": False}
@@ -125,12 +123,10 @@ def leader_election(server_host_ip, leader_uid):
         # send received election message to left neighbour
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
     elif election_IP > election_host_IP:
-        print("elif1 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         # send received election message to left neighbour
         participant = False
         election_socket.sendto(json.dumps(election_message).encode(), (neighbour, election_port))
     elif election_IP == election_host_IP and not leader:
-        print("elif2 NEIGHBOUR {}, PART {}".format(neighbour, participant))
         leader_uid = str(election_host_IP)
         new_election_message = {
             "mid": str(election_host_IP),
@@ -141,7 +137,7 @@ def leader_election(server_host_ip, leader_uid):
         leader = True
         restart()
         heartbeat_send()
-        print("New Server is starting on {}".format(host_ip))
+        print("New Main Server is starting on {}".format(host_ip))
         election_socket.sendto(json.dumps(new_election_message).encode(), (neighbour, election_port))
     
 
@@ -191,8 +187,7 @@ def send_server():
             if len(servers) == 2:
                 heartbeat_send()
 
-        print("Servers in send Server: ")
-        print(servers)
+        print("List of Servers: {}".format(servers))
         #time.sleep(2)
         multicast_server_listener.close()
 
@@ -225,7 +220,7 @@ def multicast(message):
 def vector_cast(vectorclock_send):
     vectorclock_send[0] = vectorclock_send[0]+1
     vectorclock_send = str(vectorclock_send)
-    print("VECTORCLOCK SEND: {}".format(vectorclock_send))
+    print("Vectorclock send to Clients: {}".format(vectorclock_send))
     for vectorclock_client in vectorclock_clients:
         vectorclock_client.send(vectorclock_send.encode(character_encoding))
 
@@ -253,7 +248,7 @@ def vectorclock_handle(vectorclock_client):
         try:
             vectorclock_rec = vectorclock_client.recv(buffersize)
             global vectorclock
-            #print("VECTORC RECV: {}".format(vectorclock_rec))
+            print("Vectorclock received from Client: {}".format(vectorclock_rec))
             vectorclock_rec = eval(vectorclock_rec)
             vector_client_index = vectorclock_clients.index(vectorclock_client)
             vectorclock_rec[0] = vectorclock[0]+1
@@ -294,7 +289,7 @@ def receive():
         nicknames.append(nickname)
         clients.append(client)
 
-        print(f'Nickname of the Client is {nickname}!')
+        print(f'Username of the Client is {nickname}!')
         multicast(f'{nickname} has joined the chat'.encode(character_encoding))
         client.send('Connected to the server'.encode(character_encoding))
 
@@ -309,7 +304,7 @@ def vector_receive():
         #print("VECTORCLOCK_CLIENT: {}".format(vectorclock_client))
         vectorclock.append(0)
         vectorclock_clients.append(vectorclock_client)
-        print("VECTORCLOCK SERVER RECV: {}".format(vectorclock))
+        #print("VECTORCLOCK SERVER RECV: {}".format(vectorclock))
         vector_init = "VC_INIT"+str(vectorclock)
         vectorclock_client.send(vector_init.encode(character_encoding))
         #print("VECTORCLOCK UPDATE: {}".format(vectorclock))
@@ -350,21 +345,19 @@ def start_server():
     server.listen()
     vectorclock_socket.bind((host_ip, vectorclock_port))
     vectorclock_socket.listen()
-
-    print("Server is listening...")
     receive_thread = threading.Thread(target=receive)
     receive_thread.start()
     vector_receive_thread = threading.Thread(target=vector_receive)
     vector_receive_thread.start()
-    print("Ready for Servers")
+    #print("Ready for Servers")
     receive_backup_thread = threading.Thread(target=handle_backups)
     receive_backup_thread.start()
     server_heartbeat_thread = threading.Thread(target=heartbeat_recv)
     server_heartbeat_thread.start()
     election_thread = threading.Thread(target=leader_election, args=(host_ip, leader_uid,))
     election_thread.start()
-    print("DONE")
-
+    #print("DONE")
+    print("Server is listening...")
 ############################## RESTARTING AFTER LEADER ELECTION #################################
 # function will be called after a server is the new leader to replace the importent sockets for the client/server connection
 # and handling all other Sockets for the Serverringformation
@@ -379,14 +372,14 @@ def restart():
     server.listen()
     vectorclock_socket.bind((host_ip, vectorclock_port))
     vectorclock_socket.listen()
-    print("Server is listening...")
     receive_thread = threading.Thread(target=receive)
     receive_thread.start()
     vector_receive_thread = threading.Thread(target=vector_receive)
     vector_receive_thread.start()
-    print("Ready for Servers")
+    #print("Ready for Servers")
     receive_backup_thread = threading.Thread(target=handle_backups)
     receive_backup_thread.start()
+    print("Server is listening...")
     return leader
 
 
@@ -404,11 +397,11 @@ def ask_server():
     multicast_server_sender.settimeout(0.5)
     try:
         receive_server_message, address = multicast_server_sender.recvfrom(buffersize)
-        print("Start Backup Server")
+        print("Start Backup Server at {}".format(host_ip))
         leader = False
         start_backup_server()
     except:
-        print("Start Server")
+        print("Start Main Server at {}".format(host_ip))
         leader = True
         start_server()
 
@@ -483,8 +476,7 @@ def collect_servers():
             if address[0] not in servers and address[0] != host_ip:
                 servers.append(address[0])
     except:
-        print("List Collect Servers:")
-        print(servers)
+        print("List of Servers: {}".format(servers))
 
 ############################## START #################################
 leader = ask_server()
