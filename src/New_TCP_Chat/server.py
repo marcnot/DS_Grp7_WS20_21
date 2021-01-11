@@ -222,7 +222,7 @@ def multicast(message):
         #print("MESSAGE TO: {}, MESSAGE: {}".format(client, message))
         client.send(message)
 
-def vector_cast(vectorclock_send, vectorclock_recv):
+def vector_cast(vectorclock_send):
     vectorclock_send[0] = vectorclock_send[0]+1
     vectorclock_send = str(vectorclock_send)
     print("VECTORCLOCK SEND: {}".format(vectorclock_send))
@@ -255,22 +255,29 @@ def vectorclock_handle(vectorclock_client):
             global vectorclock
             print("VECTORC RECV: {}".format(vectorclock_rec))
             vectorclock_rec = eval(vectorclock_rec)
+            vector_client_index = vectorclock_clients.index(vectorclock_client)
+            print(vector_client_index)
+            print(vectorclock_clients)
             vectorclock_rec[0] = vectorclock[0]+1
             vectorclock = vectorclock_rec
             #print("VC REC VECTORCLOCK HANDLE {}".format(vectorclock_rec))
             print("VECTORCLOCK AKTUELL: {}".format(vectorclock))
-            vector_cast(vectorclock, vectorclock_client)
+            vector_cast(vectorclock)
         except:
-            index = vectorclock_clients.index(vectorclock_client)
-            #print("INDEX BEFORE: {}".format(index))
-            vectorclock_clients.remove(vectorclock_client)
-            vectorclock_client.close()
-            #print("INDEX +1: {}".format(index+1))
-            #print("VC CLIENTS: {}".format(vectorclock_clients))
-            vectorclock_place = vectorclock[index+1]
-            #print("VC PLACE: {}".format(vectorclock_place))
-            vectorclock.remove(vectorclock_place)
-            break    
+
+             #### At this point we dont remove any clients from the vectorclock or the vectorclock_clients list 
+            #### We know that the List will get longer with every new client that connects with the server
+             #### For improvments in the future we should figure out how to remove the clients from the vectorclock
+            #### The problem is that the client doenst get a new index for his listindex (on the clientside)
+             #### by deleting a client in the middle of the list.
+
+            #index = vectorclock_clients.index(vectorclock_client)
+            #vectorclock_clients.remove(vectorclock_client)
+            #vectorclock_client.close()
+            #vectorclock_place = index+1
+            #del vectorclock[vectorclock_place]
+            #vector_cast(vectorclock)
+            break
 
 ############################## RECEIVE MESSAGES FROM CLIENTS #################################
 # Listening to new TCP CLient Connections and accepting them.
@@ -304,15 +311,19 @@ def vector_receive():
         #print("VECTORCLOCK_CLIENT: {}".format(vectorclock_client))
         vectorclock.append(0)
         vectorclock_clients.append(vectorclock_client)
-        print("VECTORCLOCK CLIENTS: {}".format(vectorclock_clients))
+        print("VECTORCLOCK SERVER RECV: {}".format(vectorclock))
 
         vector_init = "VC_INIT"+str(vectorclock)
         vectorclock_client.send(vector_init.encode(character_encoding))
+        #time.sleep(1)
+        #vector_cast(vectorclock)
 
         #print("VECTORCLOCK UPDATE: {}".format(vectorclock))
 
         vectorclock_thread = threading.Thread(target=vectorclock_handle, args=(vectorclock_client,))
         vectorclock_thread.start()
+
+        vector_cast(vectorclock)
 
 
 ############################## BACKUP SERVER HANDLING #################################

@@ -76,25 +76,25 @@ def receive(client):
 
 def vectorclock_receive(vectorclock_client):
     while True:
-        try:
-            vectorclock_send = vectorclock_client.recv(buffersize).decode(character_encoding)
-            global vectorclock_start
-            global vectorclock
-            print("vectorclock CLIENT {}".format(vectorclock_client))
-            print("vectorclock_send {}".format(vectorclock_send))
+    
+        vectorclock_send = vectorclock_client.recv(buffersize).decode(character_encoding)
+        global vectorclock_start
+        global vectorclock
 
-            if vectorclock_send[:7] == "VC_INIT":
-                vectorclock_shorting = vectorclock_send[7:]
-                vector_transform = eval(vectorclock_shorting)
-                vectorclock_start = len(vector_transform)-1
-                vectorclock = vector_transform
-            
+        print("VEC RECV: {}".format(vectorclock_send))
+
+        if vectorclock_send[:7] == "VC_INIT":
+            vectorclock_shorting = vectorclock_send[7:]
+            vector_transform = eval(vectorclock_shorting)
+            vectorclock_start = len(vector_transform)-1
+            vectorclock = vector_transform
+        else:
+            vectorclock_recv = eval(vectorclock_send)
             get_VC_value = vectorclock[vectorclock_start]
-            print("VC VALUE:{}".format(get_VC_value))
-            print("VEC RECV {}".format(vector_transform))
+            vectorclock_recv[vectorclock_start] = get_VC_value+1
+            vectorclock = vectorclock_recv
+            print("VECTORCLOCK: {}".format(vectorclock))
 
-        except:
-            break
 
 ############################## WRITE TO SERVER ##################################
 # Handles the written messages and sends them to the server via TCP
@@ -104,8 +104,6 @@ def write(client, vectorclock_client):
         try:
             message = f'{nickname}: {input("")}'
             client.send(message.encode(character_encoding))
-            #vectorclock_write_thread = threading.Thread(target=vectorclock_write, args=(vectorclock_client,))
-            #vectorclock_write_thread.start()
             vectorclock_write(vectorclock_client)
         except:
             break
@@ -126,11 +124,12 @@ def vectorclock_write (vectorclock_client):
 ##################################################################################################
 def set_connection():
     tcp_address, tcp_port = ask_host()
+    nickname = input("Wähle einen Benutzernamen: ")
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((tcp_address, tcp_port))
     vectorclock_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     vectorclock_client.connect((tcp_address, tcp_port+1))
-    return tcp_address, tcp_port, client, vectorclock_client
+    return tcp_address, tcp_port, client, vectorclock_client, nickname
 
 ############################## CREATING IMPORTENT THREADS ##################################
 # Creates all importent threads for the writing and reveiving function of the client
@@ -152,12 +151,12 @@ def create_threads(client, vectorclock_client):
 # asks for new TCP IP and PORT via the set_conneciton function and restarts the threads
 ####################################################################################################
 def reconnect():
-    tcp, port, client, vectorclock_client = set_connection()
+    tcp, port, client, vectorclock_client, nickname = set_connection()
     create_threads(client, vectorclock_client)
     return client, vectorclock_client
 
 ############################## START ##################################
 #nickname = input("Wähle einen Benutzernamen: ")
-tcp_IP, tcp_PORT, client, vectorclock_client = set_connection()
-nickname = input("Wähle einen Benutzernamen: ")
+
+tcp_IP, tcp_PORT, client, vectorclock_client, nickname = set_connection()
 create_threads(client, vectorclock_client)
