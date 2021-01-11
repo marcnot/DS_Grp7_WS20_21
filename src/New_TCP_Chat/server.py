@@ -219,7 +219,7 @@ def server_collector():
 ##########################################################################
 def multicast(message):
     for client in clients:
-        print("MESSAGE TO: {}, MESSAGE: {}".format(client, message))
+        #print("MESSAGE TO: {}, MESSAGE: {}".format(client, message))
         client.send(message)
 
 def vector_cast(vectorclock_send, vectorclock_recv):
@@ -253,6 +253,7 @@ def vectorclock_handle(vectorclock_client):
         try:
             vectorclock_rec = vectorclock_client.recv(buffersize)
             global vectorclock
+            print("VECTORC RECV: {}".format(vectorclock_rec))
             vectorclock_rec = eval(vectorclock_rec)
             vectorclock_rec[0] = vectorclock[0]+1
             vectorclock = vectorclock_rec
@@ -260,6 +261,15 @@ def vectorclock_handle(vectorclock_client):
             print("VECTORCLOCK AKTUELL: {}".format(vectorclock))
             vector_cast(vectorclock, vectorclock_client)
         except:
+            index = vectorclock_clients.index(vectorclock_client)
+            #print("INDEX BEFORE: {}".format(index))
+            vectorclock_clients.remove(vectorclock_client)
+            vectorclock_client.close()
+            #print("INDEX +1: {}".format(index+1))
+            #print("VC CLIENTS: {}".format(vectorclock_clients))
+            vectorclock_place = vectorclock[index+1]
+            #print("VC PLACE: {}".format(vectorclock_place))
+            vectorclock.remove(vectorclock_place)
             break    
 
 ############################## RECEIVE MESSAGES FROM CLIENTS #################################
@@ -279,7 +289,7 @@ def receive():
         nicknames.append(nickname)
         clients.append(client)
 
-        print(f'Nickname of the CLient is {nickname}!')
+        print(f'Nickname of the Client is {nickname}!')
         multicast(f'{nickname} has joined the chat'.encode(character_encoding))
         client.send('Connected to the server'.encode(character_encoding))
 
@@ -290,10 +300,11 @@ def vector_receive():
     while True:
         global vectorclock
         vectorclock_client, address = vectorclock_socket.accept()
-        print("Vectorclock angefragt von {}".format(str(address)))
-
+        #print("Vectorclock angefragt von {}".format(str(address)))
+        #print("VECTORCLOCK_CLIENT: {}".format(vectorclock_client))
         vectorclock.append(0)
         vectorclock_clients.append(vectorclock_client)
+        print("VECTORCLOCK CLIENTS: {}".format(vectorclock_clients))
 
         vector_init = "VC_INIT"+str(vectorclock)
         vectorclock_client.send(vector_init.encode(character_encoding))
