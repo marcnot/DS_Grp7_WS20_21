@@ -63,15 +63,17 @@ def receive(client):
             client.close()
             print("An error occurred!")
             timeout_counter = 0
-            timeout_max = 10 
+            timeout_max = 10
 
             while timeout_counter <= timeout_max:
                 print("Trying to reconnect {}/{}...".format(timeout_counter, timeout_max))
                 time.sleep(1)
                 timeout_counter += 1
-            
-            client, vectorclock_client = reconnect()
-
+                try:
+                    reconnect()
+                    return timeout_counter == 10
+                except:
+                    print("No Service!")
             break
 
 def vectorclock_receive(vectorclock_client):

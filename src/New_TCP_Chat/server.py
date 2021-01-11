@@ -46,7 +46,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 vectorclock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 election_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 heartbeat_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-heartbeat_socket.settimeout(2.5)
+heartbeat_socket.settimeout(5)
 
 #Socketbinds
 election_socket.bind((host_ip, election_port))
